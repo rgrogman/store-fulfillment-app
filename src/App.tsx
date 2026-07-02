@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, doc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, setDoc, updateDoc, increment, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "./firebase"; 
 
 function App() {
@@ -76,13 +76,43 @@ function App() {
     }
   };
 
+  const clearAllOrders = async () => {
+    if (!window.confirm("Are you sure you want to delete ALL orders? This cannot be undone.")) return;
+    
+    try {
+      const batch = writeBatch(db);
+      const querySnapshot = await getDocs(collection(db, "orders"));
+      querySnapshot.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      fetchOrders();
+      alert("All orders cleared.");
+    } catch (error) {
+      console.error("Error clearing orders: ", error);
+      alert("Failed to clear orders.");
+    }
+  };
+
+  const updateOrderStatus = async (order: any, currentItems: any[]) => {
+    // Check if every item is either "Picked" or starts with "Exception"
+    const allProcessed = currentItems.every(item => 
+      item.status === "Picked" || item.status.includes("Exception")
+    );
+    
+    if (allProcessed) {
+      const anyException = currentItems.some(item => item.status.includes("Exception"));
+      const finalStatus = anyException ? "Exception" : "Picked";
+      await updateDoc(doc(db, "orders", order.id), { status: finalStatus });
+    }
+  };
+
   const handlePickItem = async (order: any, itemIndex: number) => {
     const updatedItems = [...order.items];
-    const item = updatedItems[itemIndex];
-    item.status = "Picked";
+    updatedItems[itemIndex].status = "Picked";
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
-    await updateDoc(doc(db, "products", item.sku), { stock: increment(-item.quantity) });
+    await updateDoc(doc(db, "products", updatedItems[itemIndex].sku), { stock: increment(-updatedItems[itemIndex].quantity) });
+    
+    await updateOrderStatus(order, updatedItems); // Check order completion
     fetchOrders();
   };
 
@@ -91,6 +121,8 @@ function App() {
     updatedItems[itemIndex].status = `Exception: ${reason}`;
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
+    
+    await updateOrderStatus(order, updatedItems); // Check order completion
     fetchOrders();
   };
 
@@ -102,6 +134,7 @@ function App() {
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={seedInventory} style={{ padding: '10px 20px', backgroundColor: 'darkred', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Seed DB Inventory</button>
             <button onClick={createDummyOrder} style={{ padding: '10px 20px', backgroundColor: '#A0A0A0', color: '#1A1A1A', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ New Order</button>
+          <button onClick={clearAllOrders} style={{ padding: '10px 20px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Reset All</button>
           </div>
         </div>
         
@@ -136,11 +169,26 @@ function App() {
                         </div>
                       </div>
                       {item.status === "Pending" && (
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                          <button onClick={() => handlePickItem(order, index)} style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Pick</button>
-                          <button onClick={() => handleExceptionItem(order, index, "OOS")} style={{ backgroundColor: '#C0392B', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>X</button>
-                        </div>
-                      )}
+  <div style={{ display: 'flex', gap: '5px' }}>
+    <button 
+      onClick={() => handlePickItem(order, index)} 
+      style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+    >
+      Pick
+    </button>
+
+    <select 
+      onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
+      style={{ padding: '2px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#C0392B', color: 'white', border: 'none', borderRadius: '4px' }}
+      defaultValue=""
+    >
+      <option value="" disabled>X</option>
+      <option value="Out of Stock">Out of Stock</option>
+      <option value="Damaged">Damaged</option>
+      <option value="Misplaced">Misplaced</option>
+    </select>
+  </div>
+)}
                     </li>
                   ))}
                 </ul>
