@@ -84,18 +84,21 @@ function DailyOrdersScreen() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map(order => (
-                <tr key={order.id} style={{ borderBottom: '1px solid #E0E0E0' }}>
-                  <td style={{ padding: '15px', fontWeight: 'bold' }}>{order.orderId}</td>
-                  <td style={{ padding: '15px' }}>{order.customer?.name}</td>
-                  <td style={{ padding: '15px' }}>{order.orderType}</td>
-                  <td style={{ padding: '15px' }}>{getStatusBadge(order.status)}</td>
-                  <td style={{ padding: '15px', textAlign: 'right' }}>
-                    <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+  {filteredOrders.map(order => (
+    <tr key={order.id} style={{ borderBottom: '1px solid #E0E0E0' }}>
+      <td style={{ padding: '15px', fontWeight: 'bold' }}>
+        {order.orderId}
+        {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
+      </td>
+      <td style={{ padding: '15px' }}>{order.customer?.name}</td>
+      <td style={{ padding: '15px' }}>{order.orderType}</td>
+      <td style={{ padding: '15px' }}>{getStatusBadge(order.status)}</td>
+      <td style={{ padding: '15px', textAlign: 'right' }}>
+        <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>View</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
 
@@ -104,10 +107,11 @@ function DailyOrdersScreen() {
           {filteredOrders.map(order => (
             <div key={order.id} style={{ padding: '15px', border: '1px solid #E0E0E0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 'bold' }}>{order.orderId}</div>
+                <div style={{ fontWeight: 'bold', color: '#041053' }}>{order.orderId} {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
+    </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>{order.customer?.name}</div>
               </div>
-              <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '8px 12px', borderRadius: '4px', fontWeight: 'bold' }}>View</button>
+              <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '8px 12px', borderRadius: '4px', fontWeight: 'bold' }}>Details</button>
             </div>
           ))}
         </div>
