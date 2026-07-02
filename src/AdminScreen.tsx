@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { collection, doc, setDoc, getDocs, writeBatch, addDoc, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 function AdminScreen() {
+  const navigate = useNavigate();
   const seedInventory = async () => {
     const catalog = [
       { sku: "SKU-1001", name: "Premium Cotton T-Shirt - White", stock: 45, category: "Apparel" },
@@ -98,6 +100,24 @@ function AdminScreen() {
     }
   };
 
+  const seedUsers = async () => {
+    const users = [
+      { username: "jeagles", pin: "5678", role: "manager", name: "John Eagles (Manager)" },
+      { username: "rgrogman", pin: "1234", role: "associate", name: "Ryan Grogman (Associate)" }
+    ];
+
+    try {
+      for (const u of users) {
+        // We use the username as the actual Document ID for super fast lookups
+        await setDoc(doc(db, "users", u.username), u);
+      }
+      alert("Success! Manager (5678) and Associate (1234) accounts created.");
+    } catch (error) {
+      console.error("Error seeding users: ", error);
+      alert("Failed to create users.");
+    }
+  };
+
   return (
     <div style={{ padding: '40px 20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Demo Admin Controls</h1>
@@ -115,7 +135,12 @@ function AdminScreen() {
           >
             Seed DB Inventory
           </button>
-          
+          <button 
+        onClick={() => navigate('/ecomsim')} 
+        style={{ padding: '12px 24px', backgroundColor: '#34495E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+      >
+        E-Com Order Simulator
+      </button>
           <button 
             onClick={createDummyOrder} 
             style={{ padding: '12px 24px', backgroundColor: '#27AE60', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -136,6 +161,13 @@ function AdminScreen() {
           >
             Clear All Orders
           </button>
+
+          <button 
+  onClick={seedUsers} 
+  style={{ padding: '12px 24px', backgroundColor: '#8E44AD', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+>
+  Seed Demo Users
+</button>
         </div>
       </div>
     </div>

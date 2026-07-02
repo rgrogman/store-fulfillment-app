@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import LandingScreen from "./LandingScreen";
+import DashboardScreen from "./DashboardScreen";
 import PickScreen from "./PickScreen";
 import EcomSimulator from "./EcomSimulator";
 import AdminScreen from "./AdminScreen";
@@ -25,27 +27,54 @@ function TopNav() {
   padding: '10px 20px', 
   display: 'flex', 
   alignItems: 'center', 
+  justifyContent: 'space-between', /* Pushes the left and right sides apart */
   borderBottom: '2px solid #2C3E50',
   position: 'sticky', 
   top: 0, 
   zIndex: 1000,
-  /* Mobile-Responsive Fixes */
-  overflowX: 'auto',       // Enables swipe-scrolling
-  whiteSpace: 'nowrap',    // Keeps links in one row
-  WebkitOverflowScrolling: 'touch' // Makes scroll smooth on iOS
+  overflowX: 'auto',       
+  whiteSpace: 'nowrap',    
+  WebkitOverflowScrolling: 'touch' 
 }}>
-  <div style={{ fontWeight: 'bold', fontSize: '18px', marginRight: '20px', color: '#FFFFFF', flexShrink: 0 }}>
-    SwiftPick
+  
+  {/* Left Side: Logo and Navigation Links */}
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+    <div style={{ fontWeight: 'bold', fontSize: '18px', marginRight: '20px', color: '#FFFFFF', flexShrink: 0 }}>
+      SwiftPick
+    </div>
+    <div style={{ display: 'flex', gap: '15px' }}>
+      <Link to="/dashboard" style={navItemStyle('/dashboard')}>Dashboard</Link>
+      <Link to="/pick" style={navItemStyle('/pick')}>Pick</Link>
+      <Link to="/exceptions" style={navItemStyle('/exceptions')}>Exceptions</Link>
+      <Link to="/pack" style={navItemStyle('/pack')}>Pack</Link>
+      <Link to="/pickup" style={navItemStyle('/pickup')}>Pickup</Link>
+      <Link to="/history" style={navItemStyle('/history')}>History</Link>
+      <Link to="/admin" style={navItemStyle('/admin')}>Admin</Link>
+    </div>
   </div>
-  <div style={{ display: 'flex', gap: '15px' }}>
-    <Link to="/" style={navItemStyle('/')}>E-Com</Link>
-    <Link to="/pick" style={navItemStyle('/pick')}>Pick</Link>
-    <Link to="/exceptions" style={navItemStyle('/exceptions')}>Exceptions</Link>
-    <Link to="/pack" style={navItemStyle('/pack')}>Pack</Link>
-    <Link to="/pickup" style={navItemStyle('/pickup')}>Pickup</Link>
-    <Link to="/history" style={navItemStyle('/history')}>History</Link>
-    <Link to="/admin" style={navItemStyle('/admin')}>Admin</Link>
-  </div>
+
+  {/* Right Side: Quick Logout Button */}
+  <button 
+    onClick={() => {
+      localStorage.removeItem("swiftpick_user");
+      window.location.href = "/";
+    }}
+    style={{ 
+      backgroundColor: 'transparent', 
+      color: '#E74C3C', 
+      border: '1px solid #E74C3C', 
+      padding: '6px 14px', 
+      borderRadius: '6px', 
+      cursor: 'pointer', 
+      fontWeight: 'bold', 
+      fontSize: '13px', 
+      marginLeft: '20px',
+      flexShrink: 0,
+      transition: 'background-color 0.2s'
+    }}
+  >
+    Sign Out
+  </button>
 </nav>
   );
 }
@@ -58,7 +87,9 @@ function App() {
         
         {/* The Routes determine which screen to show below the navigation */}
         <Routes>
-          <Route path="/" element={<EcomSimulator />} />
+          <Route path="/" element={<LandingScreen />} />
+          <Route path="/dashboard" element={<DashboardScreen />} />
+          <Route path="/ecomsim" element={<EcomSimulator />} />
           <Route path="/pick" element={<PickScreen />} />
           <Route path="/exceptions" element={<ExceptionScreen />} />
           <Route path="/pack" element={<PackShipScreen />} />
