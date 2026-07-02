@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
 import PickScreen from "./PickScreen";
 import EcomSimulator from "./EcomSimulator";
+import AdminScreen from "./AdminScreen";
+import PackShipScreen from "./PackShipScreen";
+import ExceptionScreen from "./ExceptionScreen";
 
 // A simple navigation component
 function TopNav() {
@@ -22,7 +25,9 @@ function TopNav() {
       <div style={{ display: 'flex', gap: '10px' }}>
         <Link to="/" style={navItemStyle('/')}>E-Com Simulator</Link>
         <Link to="/pick" style={navItemStyle('/pick')}>Pick Screen</Link>
+        <Link to="/exceptions" style={navItemStyle('/exceptions')}>Exceptions</Link>
         <Link to="/pack" style={navItemStyle('/pack')}>Pack & Ship</Link>
+        <Link to="/admin" style={navItemStyle('/admin')}>Admin</Link>
       </div>
     </nav>
   );
@@ -38,7 +43,9 @@ function App() {
         <Routes>
           <Route path="/" element={<EcomSimulator />} />
           <Route path="/pick" element={<PickScreen />} />
-          <Route path="/pack" element={<div style={{ padding: '40px', textAlign: 'center' }}>Pack screen coming next...</div>} />
+          <Route path="/exceptions" element={<ExceptionScreen />} />
+          <Route path="/pack" element={<PackShipScreen />} />
+          <Route path="/admin" element={<AdminScreen />} /> {/* ADD THIS ROUTE */}
         </Routes>
       </div>
     </Router>
