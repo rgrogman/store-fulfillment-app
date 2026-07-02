@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, getDocs, writeBatch, addDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, writeBatch, addDoc, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 function AdminScreen() {
@@ -44,7 +44,6 @@ function AdminScreen() {
         orderId: "ORD-" + Math.floor(Math.random() * 9000 + 1000),
         status: "Pending",
         orderType: isBopis ? "BOPIS" : "SFS", 
-        // NEW: Hardcode to Priority for SFS dummy orders
         shippingSpeed: isBopis ? null : "Priority", 
         orderDate: new Date().toISOString(),
         customer: { name: "Demo User", address: "999 Test Blvd", city: "Dallas", state: "TX", zip: "75001" },
@@ -58,6 +57,29 @@ function AdminScreen() {
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("Failed to create dummy order.");
+    }
+  };
+
+  const clearPendingOrders = async () => {
+    if (!window.confirm("Are you sure you want to delete only the PENDING orders? This will clear active queues but keep history intact.")) return;
+    
+    try {
+      const batch = writeBatch(db);
+      // Query specifically for Pending status
+      const q = query(collection(db, "orders"), where("status", "==", "Pending"));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        alert("No pending orders found.");
+        return;
+      }
+
+      querySnapshot.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      alert(`Cleared ${querySnapshot.size} pending order(s).`);
+    } catch (error) {
+      console.error("Error clearing pending orders: ", error);
+      alert("Failed to clear pending orders.");
     }
   };
 
@@ -77,7 +99,7 @@ function AdminScreen() {
   };
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '40px 20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Demo Admin Controls</h1>
       
       <div style={{ backgroundColor: '#131E3A', padding: '30px', borderRadius: '12px', border: '1px solid #2C3E50' }}>
@@ -86,7 +108,7 @@ function AdminScreen() {
           Use these tools to reset the demo environment before a presentation.
         </p>
         
-        <div style={{ display: 'flex', gap: '15px' }}>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
           <button 
             onClick={seedInventory} 
             style={{ padding: '12px 24px', backgroundColor: 'darkred', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -99,6 +121,13 @@ function AdminScreen() {
             style={{ padding: '12px 24px', backgroundColor: '#27AE60', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             + Quick Dummy Order
+          </button>
+
+          <button 
+            onClick={clearPendingOrders} 
+            style={{ padding: '12px 24px', backgroundColor: '#F39C12', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            Clear Pending Orders
           </button>
 
           <button 

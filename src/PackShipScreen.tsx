@@ -2,11 +2,15 @@ import { useState, useEffect } from "react";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
-// Upgraded Order Card with Box Routing, Label Modal, and 3-Step Verification
-const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, onProcess: (id: string) => void }) => {
+// Upgraded Order Card with Box Routing, Label Modal, and BOPIS Staging Bins
+const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, onProcess: (id: string, extraData?: any) => void }) => {
+  // SFS State
   const [selectedBox, setSelectedBox] = useState("");
   const [showLabelModal, setShowLabelModal] = useState(false);
-  const [isLabelPrinted, setIsLabelPrinted] = useState(false); // NEW: Tracks intermediate print state
+  const [isLabelPrinted, setIsLabelPrinted] = useState(false);
+  
+  // BOPIS State
+  const [stagingBin, setStagingBin] = useState("");
 
   // Determine badge color based on urgency
   const getSpeedColor = (speed: string) => {
@@ -21,11 +25,15 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
 
   const handlePrintAction = () => {
     setShowLabelModal(false);
-    setIsLabelPrinted(true); // Move to Step 3 instead of completing
+    setIsLabelPrinted(true);
   };
 
   const handleFinalHandoff = () => {
-    onProcess(order.id); // Final database update
+    onProcess(order.id);
+  };
+
+  const handleStageBopisOrder = () => {
+    onProcess(order.id, stagingBin);
   };
 
   // Generates a random realistic-looking tracking number
@@ -62,7 +70,7 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
           </ul>
         </div>
 
-        {/* The Interactive Packing Workflow */}
+        {/* The Interactive Workflows */}
         {isSfs ? (
           <div style={{ borderTop: '1px solid #E0E0E0', paddingTop: '15px', marginTop: '15px' }}>
             {!isLabelPrinted ? (
@@ -133,16 +141,38 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
             )}
           </div>
         ) : (
-          <button 
-            onClick={() => onProcess(order.id)} 
-            style={{ backgroundColor: '#8E44AD', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}
-          >
-            Stage for Pickup
-          </button>
+          // NEW BOPIS WORKFLOW
+          <div style={{ borderTop: '1px solid #E0E0E0', paddingTop: '15px', marginTop: '15px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#555' }}>
+              1. Enter Staging Location
+            </label>
+            <input 
+              type="text" 
+              placeholder="e.g., Bin A-12, Locker 4, Front Desk" 
+              value={stagingBin}
+              onChange={(e) => setStagingBin(e.target.value)}
+              style={{ 
+                width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #CCC', 
+                marginBottom: '15px', boxSizing: 'border-box', color: '#1A1A1A', backgroundColor: '#FFF' 
+              }}
+            />
+            <button 
+              onClick={handleStageBopisOrder} 
+              disabled={!stagingBin.trim()}
+              style={{ 
+                backgroundColor: stagingBin.trim() ? '#8E44AD' : '#A0A0A0', 
+                color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', 
+                cursor: stagingBin.trim() ? 'pointer' : 'not-allowed', 
+                fontWeight: 'bold', width: '100%' 
+              }}
+            >
+              2. Confirm & Stage Order
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Simulated Shipping Label Modal */}
+      {/* Simulated Shipping Label Modal (unchanged) */}
       {showLabelModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
@@ -152,7 +182,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
             backgroundColor: '#FFFFFF', padding: '30px', borderRadius: '8px', width: '400px', 
             fontFamily: 'monospace', color: '#000', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
           }}>
-            {/* Label Header */}
             <div style={{ borderBottom: '3px solid #000', paddingBottom: '10px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <strong style={{ fontSize: '18px' }}>P</strong><br/>
@@ -165,7 +194,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
               </div>
             </div>
 
-            {/* Ship To Section */}
             <div style={{ marginBottom: '30px', fontSize: '16px', lineHeight: '1.4' }}>
               <span style={{ fontSize: '12px', fontWeight: 'bold' }}>SHIP TO:</span><br/>
               <strong>{order.customer?.name?.toUpperCase()}</strong><br/>
@@ -173,7 +201,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
               {order.customer?.city?.toUpperCase()}, {order.customer?.state?.toUpperCase()} {order.customer?.zip}
             </div>
 
-            {/* Fake Barcode Generator (CSS only) */}
             <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center', height: '60px', width: '100%', backgroundColor: '#fff', gap: '2px' }}>
               {Array.from({ length: 45 }).map((_, i) => (
                 <div key={i} style={{ height: '100%', width: `${Math.floor(Math.random() * 4) + 1}px`, backgroundColor: '#000' }}></div>
@@ -188,7 +215,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
               PKG: {selectedBox.toUpperCase()} | REF: {order.orderId}
             </div>
 
-            {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
                 onClick={() => setShowLabelModal(false)}
@@ -196,7 +222,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
               >
                 Cancel
               </button>
-              {/* UPDATED: Only prints label, does not finish order */}
               <button 
                 onClick={handlePrintAction}
                 style={{ flex: 2, padding: '12px', backgroundColor: '#2980B9', color: '#FFF', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -253,9 +278,13 @@ function PackShipScreen() {
     }
   };
 
-  const handleStageBopis = async (orderId: string) => {
+  const handleStageBopis = async (orderId: string, stagingBin?: string) => {
     try {
-      await updateDoc(doc(db, "orders", orderId), { status: "Ready for Pickup" });
+      // NEW: We save the staging location right to the database so the front desk can find it
+      await updateDoc(doc(db, "orders", orderId), { 
+        status: "Ready for Pickup",
+        stagingLocation: stagingBin || "Front Desk"
+      });
       fetchPickedOrders();
     } catch (error) {
       console.error("Error updating BOPIS order: ", error);
@@ -263,10 +292,15 @@ function PackShipScreen() {
   };
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Pack & Ship Operations</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      {/* This grid will automatically stack on mobile and sit side-by-side on desktop */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', 
+        gap: '20px' 
+      }}>
         
         {/* SFS Column */}
         <div>

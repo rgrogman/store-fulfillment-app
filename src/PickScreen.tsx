@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, increment, query, where } from "firebase/firestore";
 import { db } from "./firebase"; 
 
-function PickScreen(){
+function PickScreen() {
   const [orders, setOrders] = useState<any[]>([]);
 
   const fetchOrders = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "orders"));
+      // NEW: We apply a strict filter so only "Pending" orders populate this active queue
+      const q = query(collection(db, "orders"), where("status", "==", "Pending"));
+      const querySnapshot = await getDocs(q);
       const ordersArray = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -40,6 +42,7 @@ function PickScreen(){
     updatedItems[itemIndex].status = "Picked";
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
+    // Decrement inventory immediately upon successful physical pick
     await updateDoc(doc(db, "products", updatedItems[itemIndex].sku), { stock: increment(-updatedItems[itemIndex].quantity) });
     
     await updateOrderStatus(order, updatedItems); // Check order completion
@@ -63,60 +66,60 @@ function PickScreen(){
       {orders.length === 0 ? (
         <p style={{ color: '#A0A0A0' }}>No pending orders. Store is caught up!</p>
       ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {orders.map((order) => (
-              <div key={order.id} style={{ border: '1px solid #E0E0E0', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <h3 style={{ margin: 0, fontSize: '18px' }}>Order {order.orderId}</h3>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <span style={{ 
-                      backgroundColor: order.status === 'Pending' ? '#FF5722' : order.status === 'Picked' ? '#27AE60' : '#C0392B', 
-                      color: '#FFFFFF', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' 
-                    }}>
-                      {order.status}
-                    </span>
-                  </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {orders.map((order) => (
+            <div key={order.id} style={{ border: '1px solid #E0E0E0', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px' }}>Order {order.orderId}</h3>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ 
+                    backgroundColor: '#FF5722', // It will only ever be pending here now
+                    color: '#FFFFFF', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' 
+                  }}>
+                    {order.status}
+                  </span>
                 </div>
-                
-                <p style={{ fontSize: '14px', color: '#555' }}><strong>Customer:</strong> {order.customer?.name}</p>
-                <ul style={{ margin: '10px 0', paddingLeft: '20px', fontSize: '15px' }}>
-                  {order.items?.map((item: any, index: number) => (
-                    <li key={index} style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <strong>{item.quantity}x</strong> {item.name} 
-                        <div style={{ fontSize: '11px', color: item.status?.includes('Exception') ? '#C0392B' : '#888' }}>
-                          Status: {item.status}
-                        </div>
-                      </div>
-                      {item.status === "Pending" && (
-  <div style={{ display: 'flex', gap: '5px' }}>
-    <button 
-      onClick={() => handlePickItem(order, index)} 
-      style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-    >
-      Pick
-    </button>
-
-    <select 
-      onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
-      style={{ padding: '2px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#C0392B', color: 'white', border: 'none', borderRadius: '4px' }}
-      defaultValue=""
-    >
-      <option value="" disabled>X</option>
-      <option value="Out of Stock">Out of Stock</option>
-      <option value="Damaged">Damaged</option>
-      <option value="Misplaced">Misplaced</option>
-    </select>
-  </div>
-)}
-                    </li>
-                  ))}
-                </ul>
               </div>
-            ))}
-          </div>
-        )}
-      </div>   
+              
+              <p style={{ fontSize: '14px', color: '#555' }}><strong>Customer:</strong> {order.customer?.name}</p>
+              <ul style={{ margin: '10px 0', paddingLeft: '20px', fontSize: '15px' }}>
+                {order.items?.map((item: any, index: number) => (
+                  <li key={index} style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>{item.quantity}x</strong> {item.name} 
+                      <div style={{ fontSize: '11px', color: item.status?.includes('Exception') ? '#C0392B' : '#888' }}>
+                        Status: {item.status}
+                      </div>
+                    </div>
+                    {item.status === "Pending" && (
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button 
+                          onClick={() => handlePickItem(order, index)} 
+                          style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                        >
+                          Pick
+                        </button>
+
+                        <select 
+                          onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
+                          style={{ padding: '2px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#C0392B', color: 'white', border: 'none', borderRadius: '4px' }}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>X</option>
+                          <option value="Out of Stock">Out of Stock</option>
+                          <option value="Damaged">Damaged</option>
+                          <option value="Misplaced">Misplaced</option>
+                        </select>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
