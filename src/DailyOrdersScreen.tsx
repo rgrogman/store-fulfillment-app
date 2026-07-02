@@ -36,10 +36,14 @@ function DailyOrdersScreen() {
 
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case "Shipped": return <span style={{ backgroundColor: '#2980B9', color: '#FFF', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>SHIPPED (SFS)</span>;
-      case "Completed": return <span style={{ backgroundColor: '#27AE60', color: '#FFF', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>COMPLETED (BOPIS)</span>;
-      case "Rejected_To_OMS": return <span style={{ backgroundColor: '#C0392B', color: '#FFF', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>REJECTED</span>;
-      default: return <span>{status}</span>;
+      case "Shipped": 
+        return <span style={{ backgroundColor: '#2980B9', color: '#FFF', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>SHIPPED</span>;
+      case "Completed": 
+        return <span style={{ backgroundColor: '#27AE60', color: '#FFF', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>COMPLETED</span>;
+      case "Rejected_To_OMS": 
+        return <span style={{ backgroundColor: '#C0392B', color: '#FFF', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>REJECTED</span>;
+      default: 
+        return <span style={{ backgroundColor: '#7F8C8D', color: '#FFF', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{status.toUpperCase()}</span>;
     }
   };
 
@@ -86,15 +90,15 @@ function DailyOrdersScreen() {
             <tbody>
   {filteredOrders.map(order => (
     <tr key={order.id} style={{ borderBottom: '1px solid #E0E0E0' }}>
-      <td style={{ padding: '15px', fontWeight: 'bold' }}>
+      <td style={{ padding: '15px', fontSize: '14px',fontWeight: 'bold' }}>
         {order.orderId}
         {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
       </td>
-      <td style={{ padding: '15px' }}>{order.customer?.name}</td>
-      <td style={{ padding: '15px' }}>{order.orderType}</td>
-      <td style={{ padding: '15px' }}>{getStatusBadge(order.status)}</td>
-      <td style={{ padding: '15px', textAlign: 'right' }}>
-        <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>View</button>
+      <td style={{ padding: '15px', fontSize: '14px' }}>{order.customer?.name}</td>
+      <td style={{ padding: '15px', fontSize: '14px' }}>{order.orderType}</td>
+      <td style={{ padding: '15px', fontSize: '14px' }}>{getStatusBadge(order.status)}</td>
+      <td style={{ padding: '15px', fontSize: '14px', textAlign: 'right' }}>
+        <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Details</button>
       </td>
     </tr>
   ))}

@@ -123,34 +123,41 @@ function AdminScreen() {
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Demo Admin Controls</h1>
       
       <div style={{ backgroundColor: '#131E3A', padding: '30px', borderRadius: '12px', border: '1px solid #2C3E50' }}>
-        <h2 style={{ fontSize: '18px', marginTop: 0, marginBottom: '20px' }}>Database Management</h2>
+    
         <p style={{ color: '#A0A0A0', fontSize: '14px', marginBottom: '20px' }}>
           Use these tools to reset the demo environment before a presentation.
         </p>
         
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
           <button 
-            onClick={seedInventory} 
-            style={{ padding: '12px 24px', backgroundColor: 'darkred', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={seedUsers} 
+            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
-            Seed DB Inventory
+             Seed Demo Users
+        </button>
+        <button 
+            onClick={seedInventory} 
+            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            Reset DB Inventory
           </button>
+          
           <button 
         onClick={() => navigate('/ecomsim')} 
-        style={{ padding: '12px 24px', backgroundColor: '#34495E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-      >
+        style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
         E-Com Order Simulator
       </button>
           <button 
             onClick={createDummyOrder} 
-            style={{ padding: '12px 24px', backgroundColor: '#27AE60', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             + Quick Dummy Order
           </button>
 
           <button 
             onClick={clearPendingOrders} 
-            style={{ padding: '12px 24px', backgroundColor: '#F39C12', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             Clear Pending Orders
           </button>
@@ -162,12 +169,7 @@ function AdminScreen() {
             Clear All Orders
           </button>
 
-          <button 
-  onClick={seedUsers} 
-  style={{ padding: '12px 24px', backgroundColor: '#8E44AD', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
->
-  Seed Demo Users
-</button>
+          
         </div>
       </div>
     </div>
