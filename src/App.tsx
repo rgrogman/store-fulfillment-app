@@ -39,8 +39,18 @@ function TopNav() {
   
   {/* Left Side: Logo and Navigation Links */}
   <div style={{ display: 'flex', alignItems: 'center' }}>
-    <div style={{ fontWeight: 'bold', fontSize: '18px', marginRight: '20px', color: '#FFFFFF', flexShrink: 0 }}>
-      SwiftPick
+    
+    {/* NEW: White pill container for the dark logo */}
+    <div style={{ 
+      backgroundColor: '#FFFFFF', 
+      padding: '5px 12px', 
+      borderRadius: '6px', 
+      marginRight: '20px', 
+      display: 'flex', 
+      alignItems: 'center', 
+      flexShrink: 0 
+    }}>
+      <img src="/logo.png" alt="SwiftPick" style={{ height: '22px' }} />
     </div>
     <div style={{ display: 'flex', gap: '15px' }}>
       <Link to="/dashboard" style={navItemStyle('/dashboard')}>Dashboard</Link>

@@ -117,7 +117,19 @@ function AdminScreen() {
       alert("Failed to create users.");
     }
   };
-
+// Uniform button styling to match your screenshot
+  const adminButtonStyle = {
+    padding: '15px',
+    backgroundColor: '#6C7A89', // Slate gray
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    width: '100%', // This forces the button to fill the grid cell completely
+    transition: 'background-color 0.2s'
+  };
   return (
     <div style={{ padding: '40px 20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Demo Admin Controls</h1>
@@ -128,49 +140,41 @@ function AdminScreen() {
           Use these tools to reset the demo environment before a presentation.
         </p>
         
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={seedUsers} 
-            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-             Seed Demo Users
+        {/* Uniform Grid Container for Admin Controls */}
+      <div style={{ 
+        display: 'grid', 
+        /* 1 column on mobile, 3 equal columns on desktop */
+        gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(3, 1fr)', 
+        gap: '20px',
+        maxWidth: '900px',
+        margin: '0 auto' 
+      }}>
+        
+        {/* Make sure to re-attach your specific onClick functions to these buttons! */}
+        <button onClick={seedUsers} style={adminButtonStyle}>
+          Seed Demo Users
         </button>
-        <button 
-            onClick={seedInventory} 
-            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            Reset DB Inventory
-          </button>
-          
-          <button 
-        onClick={() => navigate('/ecomsim')} 
-        style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-        E-Com Order Simulator
-      </button>
-          <button 
-            onClick={createDummyOrder} 
-            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            + Quick Dummy Order
-          </button>
-
-          <button 
-            onClick={clearPendingOrders} 
-            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            Clear Pending Orders
-          </button>
-
-          <button 
-            onClick={clearAllOrders} 
-            style={{ padding: '12px 24px', backgroundColor: '#5D6D7E', color: '#FFFFFF', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            Clear All Orders
-          </button>
-
-          
-        </div>
+        
+        <button onClick={seedInventory}  style={adminButtonStyle}>
+          Reset DB Inventory
+        </button>
+        
+        <button onClick={() => navigate('/ecomsim')} style={adminButtonStyle}>
+          E-Com Order Simulator
+        </button>
+        
+        <button onClick={createDummyOrder} style={adminButtonStyle}>
+          + Quick Dummy Order
+        </button>
+        
+        <button onClick={clearPendingOrders} style={adminButtonStyle}>
+          Clear Pending Orders
+        </button>
+        
+        <button onClick={clearAllOrders} style={adminButtonStyle}>
+          Clear All Orders
+        </button>
+      </div>
       </div>
     </div>
   );

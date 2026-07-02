@@ -39,8 +39,8 @@ function LandingScreen() {
       <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
         
         <div style={{ marginBottom: '30px' }}>
-          <h1 style={{ margin: 0, fontSize: '32px', color: '#131E3A', fontWeight: '900', letterSpacing: '-1px' }}>SwiftPick</h1>
-          <p style={{ margin: '5px 0 0 0', color: '#7F8C8D', fontSize: '14px' }}>Retail Operations Portal</p>
+          <img src="/logo.png" alt="SwiftPick Logo" style={{ height: '45px', marginBottom: '5px' }} />
+          <p style={{ margin: '5px 0 0 0', color: '#7F8C8D', fontSize: '14px' }}>In-Store Fulfillment App</p>
         </div>
 
         {errorMsg && (

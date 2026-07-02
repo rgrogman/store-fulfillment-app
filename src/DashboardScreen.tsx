@@ -95,7 +95,7 @@ function DashboardScreen() {
         </div>
 
         {/* Exceptions Queue */}
-        <div onClick={() => navigate('/exceptions')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', cursor: 'pointer', borderLeft: '6px solid #C0392B', marginTop: '15px' }}>
+        <div onClick={() => navigate('/exceptions')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', cursor: 'pointer', borderLeft: '6px solid #C0392B'}}>
           <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#C0392B' }}>Exceptions Requiring Action</span>
           <span style={{ backgroundColor: '#C0392B', color: '#FFF', padding: '5px 15px', borderRadius: '20px', fontWeight: 'bold', fontSize: '18px' }}>{counts.exceptions}</span>
         </div>

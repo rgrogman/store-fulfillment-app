@@ -138,7 +138,7 @@ function DailyOrdersScreen() {
             color: '#1A1A1A', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', maxHeight: '80vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E0E0E0', paddingBottom: '15px', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>Order Details: {selectedOrder.orderId}</h2>
+              <h2 style={{ margin: 0, color: '#020340',fontSize: '20px' }}>Order Details: {selectedOrder.orderId}</h2>
               {getStatusBadge(selectedOrder.status)}
             </div>
 
@@ -157,7 +157,7 @@ function DailyOrdersScreen() {
             )}
 
             <div style={{ backgroundColor: '#F8F9FA', padding: '15px', borderRadius: '6px', border: '1px solid #EAECEE' }}>
-              <strong style={{ display: 'block', marginBottom: '10px', fontSize: '14px' }}>Item Manifest</strong>
+              <strong style={{ display: 'block', marginBottom: '10px', fontSize: '14px' }}>Order Manifest</strong>
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
                 {selectedOrder.items?.map((item: any, index: number) => (
                   <li key={index} style={{ marginBottom: '6px' }}>
