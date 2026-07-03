@@ -1,3 +1,4 @@
+import { useIntegration } from "./IntegrationContext";
 import { useState, useEffect } from "react";
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
@@ -21,6 +22,9 @@ function EcomSimulator() {
   const [selectedSku, setSelectedSku] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [cart, setCart] = useState<any[]>([]);
+  
+  // The Integration Hook
+  const { addEvent } = useIntegration();
 
   // Fetch real inventory from Firebase to populate the dropdown
   useEffect(() => {
@@ -70,13 +74,16 @@ function EcomSimulator() {
     }
 
     const customer = DEMO_CUSTOMERS[selectedCustomerIndex];
+    
+    // STEP 1: Generate the Order ID here so we can use it in both Firebase and the API payload
+    const newOrderId = "ORD-" + Math.floor(Math.random() * 9000 + 1000);
 
     try {
+      // STEP 2: Save to Firebase Database
       await addDoc(collection(db, "orders"), {
-        orderId: "ORD-" + Math.floor(Math.random() * 9000 + 1000),
+        orderId: newOrderId, // Using the variable we just created
         status: "Pending",
         orderType: orderType,
-        // NEW: Save the shipping speed (or null if BOPIS)
         shippingSpeed: orderType === "BOPIS" ? null : shippingSpeed, 
         orderDate: new Date().toISOString(),
         customer: { 
@@ -89,6 +96,17 @@ function EcomSimulator() {
         items: cart
       });
       
+     // STEP 3: Push the real-time event to the Integration Stream
+      addEvent("INBOUND_ORDER_ROUTING", {
+        orderId: newOrderId,
+        source: "COMMERCE_CLOUD",
+        assignedNode: "STR-042",
+        type: orderType, 
+        customer: customer.name,
+        items: cart, /* <-- THIS IS THE NEW LINE */
+        timestamp: new Date().toISOString()
+      });
+
       alert(`Success! Order placed for ${customer.name}. Check the Pick Screen.`);
       setCart([]); 
     } catch (error) {
@@ -133,22 +151,22 @@ function EcomSimulator() {
           <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: orderType === "BOPIS" ? '#CCC' : '#1A1A1A' }}>Shipping Speed</label>
            <select 
-  value={shippingSpeed} 
-  onChange={(e) => setShippingSpeed(e.target.value)}
-  disabled={orderType === "BOPIS"}
-  style={{ 
-    width: '100%', 
-    padding: '10px', 
-    borderRadius: '6px', 
-    border: '1px solid #CCC', 
-    backgroundColor: orderType === "BOPIS" ? '#F8F9FA' : 'white',
-    color: '#1A1A1A' /* <-- THIS FIXES THE INVISIBLE TEXT */
-  }}
->
-  <option value="Standard">Standard (3-5 Days)</option>
-  <option value="Priority">Priority (2-Day)</option>
-  <option value="Overnight">Overnight (Next Day)</option>
-</select>
+              value={shippingSpeed} 
+              onChange={(e) => setShippingSpeed(e.target.value)}
+              disabled={orderType === "BOPIS"}
+              style={{ 
+                width: '100%', 
+                padding: '10px', 
+                borderRadius: '6px', 
+                border: '1px solid #CCC', 
+                backgroundColor: orderType === "BOPIS" ? '#F8F9FA' : 'white',
+                color: '#1A1A1A'
+              }}
+            >
+              <option value="Standard">Standard (3-5 Days)</option>
+              <option value="Priority">Priority (2-Day)</option>
+              <option value="Overnight">Overnight (Next Day)</option>
+            </select>
           </div>
         </div>
 
