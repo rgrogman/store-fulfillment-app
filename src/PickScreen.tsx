@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, updateDoc, increment, query, where } from "firebase/firestore";
 import { db } from "./firebase"; 
+import { useIntegration } from "./IntegrationContext";
 
 function PickScreen() {
   const [orders, setOrders] = useState<any[]>([]);
+  
+  // Bring in our API event stream hook
+  const { addEvent } = useIntegration();
 
   const fetchOrders = async () => {
     try {
-      // We apply a strict filter so only "Pending" orders populate this active queue
       const q = query(collection(db, "orders"), where("status", "==", "Pending"));
       const querySnapshot = await getDocs(q);
       const ordersArray = querySnapshot.docs.map(doc => ({
@@ -25,7 +28,6 @@ function PickScreen() {
   }, []);
 
   const updateOrderStatus = async (order: any, currentItems: any[]) => {
-    // Check if every item is either "Picked" or starts with "Exception"
     const allProcessed = currentItems.every(item => 
       item.status === "Picked" || item.status.includes("Exception")
     );
@@ -39,23 +41,40 @@ function PickScreen() {
 
   const handlePickItem = async (order: any, itemIndex: number) => {
     const updatedItems = [...order.items];
-    updatedItems[itemIndex].status = "Picked";
+    const pickedItem = updatedItems[itemIndex];
+    pickedItem.status = "Picked";
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
-    // Decrement inventory immediately upon successful physical pick
-    await updateDoc(doc(db, "products", updatedItems[itemIndex].sku), { stock: increment(-updatedItems[itemIndex].quantity) });
+    await updateDoc(doc(db, "products", pickedItem.sku), { stock: increment(-pickedItem.quantity) });
     
-    await updateOrderStatus(order, updatedItems); // Check order completion
+    // NEW: Fire the real-time API event for the inventory decrement
+    addEvent("INVENTORY_DECREMENT", {
+      orderId: order.orderId,
+      sku: pickedItem.sku,
+      itemName: pickedItem.name,
+      quantityChange: -pickedItem.quantity,
+      reasonCode: "SFS_PICK_COMPLETE",
+      location: {
+        storeId: "STR-042",
+        nodeType: "RETAIL_STORE"
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    await updateOrderStatus(order, updatedItems);
     fetchOrders();
   };
 
   const handleExceptionItem = async (order: any, itemIndex: number, reason: string) => {
     const updatedItems = [...order.items];
-    updatedItems[itemIndex].status = `Exception: ${reason}`;
+    const exceptionItem = updatedItems[itemIndex];
+    exceptionItem.status = `Exception: ${reason}`;
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
     
-    await updateOrderStatus(order, updatedItems); // Check order completion
+    // REMOVED THE addEvent BLOCK FROM HERE
+
+    await updateOrderStatus(order, updatedItems);
     fetchOrders();
   };
 
@@ -73,7 +92,6 @@ function PickScreen() {
                 <h3 style={{ margin: 0, fontSize: '18px' }}>Order {order.orderId}</h3>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   
-                  {/* UPDATED: Soft Slate Badge */}
                   <span style={{ 
                     backgroundColor: '#F1F5F9', 
                     color: '#475569', 
@@ -103,7 +121,6 @@ function PickScreen() {
                     {item.status === "Pending" && (
                       <div style={{ display: 'flex', gap: '5px' }}>
                         
-                        {/* UPDATED: Tonal Green Pick Button */}
                         <button 
                           onClick={() => handlePickItem(order, index)} 
                           style={{ 
@@ -121,7 +138,6 @@ function PickScreen() {
                           Pick
                         </button>
 
-                        {/* UPDATED: Tonal Red Exception Dropdown */}
                         <select 
                           onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
                           style={{ 

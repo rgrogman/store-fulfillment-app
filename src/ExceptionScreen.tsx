@@ -1,22 +1,25 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from "./firebase";
+import { useIntegration } from "./IntegrationContext";
 
 function ExceptionScreen() {
   const [exceptionOrders, setExceptionOrders] = useState<any[]>([]);
-const [isAuthorized, setIsAuthorized] = useState(true);
-useEffect(() => {
-  const storedUser = localStorage.getItem("swiftpick_user");
-  if (storedUser) {
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== "manager") {
-      setIsAuthorized(false);
+  const [isAuthorized, setIsAuthorized] = useState(true);
+  const { addEvent } = useIntegration();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("swiftpick_user");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.role !== "manager") {
+        setIsAuthorized(false);
+      }
+    } else {
+      // Kick them out if they aren't logged in at all
+      window.location.href = "/"; 
     }
-  } else {
-    // Kick them out if they aren't logged in at all
-    window.location.href = "/"; 
-  }
-}, []);
+  }, []);
 
   const fetchExceptionOrders = async () => {
     try {
@@ -56,6 +59,20 @@ useEffect(() => {
         stock: increment(-overriddenItem.quantity) 
       });
 
+      // NEW: Fire the delayed decrement payload to the Integration Stream
+      addEvent("INVENTORY_DECREMENT", {
+        orderId: orderData.orderId,
+        sku: overriddenItem.sku,
+        itemName: overriddenItem.name,
+        quantityChange: -overriddenItem.quantity,
+        reasonCode: "MANAGER_OVERRIDE_PICK",
+        location: {
+          storeId: "STR-042",
+          nodeType: "RETAIL_STORE"
+        },
+        timestamp: new Date().toISOString()
+      });
+
       // 3. Check if the order is completely resolved
       const stillHasExceptions = updatedItems.some((item: any) => item.status.includes("Exception"));
       const newOrderStatus = stillHasExceptions ? "Exception" : "Picked";
@@ -90,6 +107,22 @@ useEffect(() => {
       const goodItems = orderData.items.filter((item: any) => item.status === "Picked");
       const badItems = orderData.items.filter((item: any) => item.status.includes("Exception"));
 
+      // NEW: Fire the exception payload to the OMS for the rejected items
+      badItems.forEach((item: any) => {
+        addEvent("OMS_EXCEPTION_ROUTING", {
+          orderId: orderData.orderId,
+          sku: item.sku,
+          itemName: item.name,
+          // Cleans up the string (e.g., "Exception: Damaged" becomes "DAMAGED")
+          reasonCode: item.status.replace("Exception: ", "").toUpperCase().replace(/\s+/g, '_'),
+          action: "REROUTE_TO_DC",
+          location: {
+            storeId: "STR-042"
+          },
+          timestamp: new Date().toISOString()
+        });
+      });
+
       if (goodItems.length > 0) {
         // Split & Release workflow
         await updateDoc(orderRef, {
@@ -112,18 +145,20 @@ useEffect(() => {
       alert("Failed to process exception split.");
     }
   };
-if (!isAuthorized) {
-  return (
-    <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-      <div style={{ backgroundColor: '#FDEDEC', border: '2px solid #C0392B', padding: '40px', borderRadius: '12px', maxWidth: '500px', margin: '0 auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ color: '#C0392B', margin: '0 0 10px 0', fontSize: '24px' }}>⚠️ Access Denied</h2>
-        <p style={{ color: '#555', fontSize: '16px', margin: 0 }}>
-          Your current role (<strong>Associate</strong>) does not have permission to view or resolve inventory exceptions. Please request a Manager override.
-        </p>
+
+  if (!isAuthorized) {
+    return (
+      <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+        <div style={{ backgroundColor: '#FDEDEC', border: '2px solid #C0392B', padding: '40px', borderRadius: '12px', maxWidth: '500px', margin: '0 auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ color: '#C0392B', margin: '0 0 10px 0', fontSize: '24px' }}>⚠️ Access Denied</h2>
+          <p style={{ color: '#555', fontSize: '16px', margin: 0 }}>
+            Your current role (<strong>Associate</strong>) does not have permission to view or resolve inventory exceptions. Please request a Manager override.
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
   return (
     <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: '2px solid #C0392B', paddingBottom: '15px' }}>

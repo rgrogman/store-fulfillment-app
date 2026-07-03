@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { useIntegration } from "./IntegrationContext";
 
 // Upgraded Order Card with Box Routing, Label Modal, and BOPIS Staging Bins
-const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, onProcess: (id: string, extraData?: any) => void }) => {
+const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, onProcess: (order: any, extraData?: any) => void }) => {
+  // We bring the integration hook directly into the card so we can fire events during the label steps
+  const { addEvent } = useIntegration();
+
   // SFS State
   const [selectedBox, setSelectedBox] = useState("");
   const [showLabelModal, setShowLabelModal] = useState(false);
   const [isLabelPrinted, setIsLabelPrinted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false); // To show a loading state during the API call
+  const [trackingNumber, setTrackingNumber] = useState("");
   
   // BOPIS State
   const [stagingBin, setStagingBin] = useState("");
@@ -20,7 +26,62 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
   };
 
   const handleGenerateLabelClick = () => {
-    setShowLabelModal(true);
+    setIsGenerating(true);
+    
+    // Generate the tracking number we will use
+    const newTracking = "1Z" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    setTrackingNumber(newTracking);
+
+    // EVENT 1: The Outbound Request to the Aggregator
+    addEvent("SHIPPING_API_REQUEST", {
+      orderId: order.orderId,
+      endpoint: "POST /v2/shipments",
+      provider: "EasyPost_API",
+      payload: {
+        to_address: {
+          name: order.customer?.name,
+          street1: order.customer?.address,
+          city: order.customer?.city,
+          state: order.customer?.state,
+          zip: order.customer?.zip
+        },
+        from_address: {
+          company: "Retail Consulting Partners - STR-042",
+          street1: "100 Retail Way",
+          city: "Dallas",
+          state: "TX",
+          zip: "75201"
+        },
+        parcel: {
+          packaging_type: selectedBox.toUpperCase().replace(' ', '_'),
+          weight_oz: 38
+        },
+        options: {
+          requested_service: order.shippingSpeed?.toUpperCase() || "STANDARD"
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    // Simulate network delay for the API response
+    setTimeout(() => {
+      // EVENT 2: The Inbound Response from the Aggregator
+      addEvent("SHIPPING_API_RESPONSE", {
+        orderId: order.orderId,
+        status: 201,
+        response: {
+          tracking_code: newTracking,
+          label_url: `https://api.shipping.demo/labels/${order.orderId}.pdf`,
+          rate_usd: 8.45,
+          carrier: "UPS",
+          estimated_days: order.shippingSpeed === "Overnight" ? 1 : 3
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      setIsGenerating(false);
+      setShowLabelModal(true); // Now we show the physical label
+    }, 800);
   };
 
   const handlePrintAction = () => {
@@ -29,15 +90,13 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
   };
 
   const handleFinalHandoff = () => {
-    onProcess(order.id);
+    // Pass the selected box and generated tracking number to the main component for the final OMS payload
+    onProcess(order, { box: selectedBox, tracking: trackingNumber });
   };
 
   const handleStageBopisOrder = () => {
-    onProcess(order.id, stagingBin);
+    onProcess(order, { stagingBin });
   };
-
-  // Generates a random realistic-looking tracking number
-  const mockTrackingNumber = "1Z" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
   return (
     <>
@@ -102,15 +161,15 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
                 
                 <button 
                   onClick={handleGenerateLabelClick} 
-                  disabled={!selectedBox}
+                  disabled={!selectedBox || isGenerating}
                   style={{ 
-                    backgroundColor: selectedBox ? '#2980B9' : '#A0A0A0', 
+                    backgroundColor: selectedBox ? (isGenerating ? '#34495E' : '#2980B9') : '#A0A0A0', 
                     color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', 
-                    cursor: selectedBox ? 'pointer' : 'not-allowed', 
+                    cursor: selectedBox && !isGenerating ? 'pointer' : 'not-allowed', 
                     fontWeight: 'bold', width: '100%' 
                   }}
                 >
-                  2. Generate Carrier Label
+                  {isGenerating ? "Calling Shipping API..." : "2. Generate Carrier Label"}
                 </button>
               </>
             ) : (
@@ -172,7 +231,7 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
         )}
       </div>
 
-      {/* Simulated Shipping Label Modal (unchanged) */}
+      {/* Simulated Shipping Label Modal */}
       {showLabelModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
@@ -208,7 +267,7 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
             </div>
             
             <div style={{ textAlign: 'center', fontSize: '14px', letterSpacing: '2px', fontWeight: 'bold', marginBottom: '30px' }}>
-              {mockTrackingNumber}
+              {trackingNumber}
             </div>
 
             <div style={{ borderTop: '2px dashed #CCC', paddingTop: '20px', textAlign: 'center', fontSize: '10px', color: '#666', marginBottom: '20px' }}>
@@ -239,6 +298,9 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
 function PackShipScreen() {
   const [sfsOrders, setSfsOrders] = useState<any[]>([]);
   const [bopisOrders, setBopisOrders] = useState<any[]>([]);
+  
+  // Bring in our API event stream hook for the final handoff events
+  const { addEvent } = useIntegration();
 
   const fetchPickedOrders = async () => {
     try {
@@ -269,22 +331,52 @@ function PackShipScreen() {
     fetchPickedOrders();
   }, []);
 
-  const handleShipSfs = async (orderId: string) => {
+  const handleShipSfs = async (order: any, extraData: any) => {
     try {
-      await updateDoc(doc(db, "orders", orderId), { status: "Shipped" });
+      await updateDoc(doc(db, "orders", order.id), { status: "Shipped" });
+      
+      // EVENT 3: The physical handoff confirmation back to the DOM/OMS
+      addEvent("SFS_PACK_COMPLETE", {
+        orderId: order.orderId,
+        status: "SHIPPED",
+        trackingNumber: extraData?.tracking || "1Z9999999999",
+        packaging: extraData?.box || "Standard Box",
+        action: "CARRIER_HANDOFF_CONFIRMED",
+        location: { storeId: "STR-042" },
+        timestamp: new Date().toISOString()
+      });
+
       fetchPickedOrders();
     } catch (error) {
       console.error("Error updating SFS order: ", error);
     }
   };
 
-  const handleStageBopis = async (orderId: string, stagingBin?: string) => {
+  const handleStageBopis = async (order: any, extraData: any) => {
     try {
-      // NEW: We save the staging location right to the database so the front desk can find it
-      await updateDoc(doc(db, "orders", orderId), { 
+      const bin = extraData?.stagingBin || "Front Desk";
+      
+      await updateDoc(doc(db, "orders", order.id), { 
         status: "Ready for Pickup",
-        stagingLocation: stagingBin || "Front Desk"
+        stagingLocation: bin
       });
+
+      // Fire real-time BOPIS staging payload
+      addEvent("BOPIS_STAGING_UPDATE", {
+        orderId: order.orderId,
+        customer: order.customer?.name,
+        newStatus: "READY_FOR_PICKUP",
+        location: {
+          storeId: "STR-042",
+          holdBin: bin
+        },
+        communications: {
+          triggerSms: true,
+          triggerEmail: true
+        },
+        timestamp: new Date().toISOString()
+      });
+
       fetchPickedOrders();
     } catch (error) {
       console.error("Error updating BOPIS order: ", error);
@@ -295,7 +387,6 @@ function PackShipScreen() {
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Pack & Ship Operations</h1>
       
-      {/* This grid will automatically stack on mobile and sit side-by-side on desktop */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', 

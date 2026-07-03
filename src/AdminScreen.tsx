@@ -1,8 +1,10 @@
+import { useIntegration } from "./IntegrationContext";
 import { useNavigate } from "react-router-dom";
 import { collection, doc, setDoc, getDocs, writeBatch, addDoc, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 function AdminScreen() {
+  const { clearEvents } = useIntegration(); // Pull the clear function from context
   const navigate = useNavigate();
   const seedInventory = async () => {
     const catalog = [
@@ -159,6 +161,10 @@ function AdminScreen() {
           Reset DB Inventory
         </button>
         
+        <button onClick={clearEvents}  style={adminButtonStyle}>
+          Clear API Logs
+        </button>
+
         <button onClick={() => navigate('/ecomsim')} style={adminButtonStyle}>
           E-Com Order Simulator
         </button>

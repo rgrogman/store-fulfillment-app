@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { useIntegration } from "./IntegrationContext";
 
 // Individual Card Component to handle local verification state
-const PickupCard = ({ order, onComplete }: { order: any, onComplete: (id: string) => void }) => {
+const PickupCard = ({ order, onComplete }: { order: any, onComplete: (order: any) => void }) => {
   const [isVerified, setIsVerified] = useState(false);
 
   return (
@@ -46,7 +47,7 @@ const PickupCard = ({ order, onComplete }: { order: any, onComplete: (id: string
         </label>
 
         <button 
-          onClick={() => onComplete(order.id)}
+          onClick={() => onComplete(order)} // We now pass the full order object here
           disabled={!isVerified}
           style={{ 
             backgroundColor: isVerified ? '#27AE60' : '#A0A0A0', 
@@ -65,6 +66,9 @@ const PickupCard = ({ order, onComplete }: { order: any, onComplete: (id: string
 function CustomerPickupScreen() {
   const [pickupOrders, setPickupOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Bring in the integration hook
+  const { addEvent } = useIntegration();
 
   const fetchPickupOrders = async () => {
     try {
@@ -85,10 +89,32 @@ function CustomerPickupScreen() {
     fetchPickupOrders();
   }, []);
 
-  const handleCompletePickup = async (orderId: string) => {
+  const handleCompletePickup = async (order: any) => {
     try {
-      await updateDoc(doc(db, "orders", orderId), { status: "Completed" });
-      fetchPickupOrders(); // Refresh the list
+      // 1. Update Firebase
+      await updateDoc(doc(db, "orders", order.id), { 
+        status: "Completed",
+        pickupTime: new Date().toISOString()
+      });
+
+      // 2. Fire the real-time OMS payload for Proof of Delivery / Revenue Recognition
+      addEvent("BOPIS_ORDER_COMPLETED", {
+        orderId: order.orderId,
+        customer: order.customer?.name,
+        finalStatus: "DELIVERED_TO_CUSTOMER",
+        verification: "ID_OR_EMAIL_CONFIRMED",
+        location: {
+          storeId: "STR-042",
+          retrievedFrom: order.stagingLocation || "Front Desk"
+        },
+        financials: {
+          action: "RECOGNIZE_REVENUE",
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      // 3. Refresh the UI
+      fetchPickupOrders(); 
     } catch (error) {
       console.error("Error completing pickup: ", error);
       alert("Failed to complete order handoff.");
