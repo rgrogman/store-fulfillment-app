@@ -7,7 +7,7 @@ function PickScreen() {
 
   const fetchOrders = async () => {
     try {
-      // NEW: We apply a strict filter so only "Pending" orders populate this active queue
+      // We apply a strict filter so only "Pending" orders populate this active queue
       const q = query(collection(db, "orders"), where("status", "==", "Pending"));
       const querySnapshot = await getDocs(q);
       const ordersArray = querySnapshot.docs.map(doc => ({
@@ -72,12 +72,21 @@ function PickScreen() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px' }}>Order {order.orderId}</h3>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  
+                  {/* UPDATED: Soft Slate Badge */}
                   <span style={{ 
-                    backgroundColor: '#FF5722', // It will only ever be pending here now
-                    color: '#FFFFFF', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' 
+                    backgroundColor: '#F1F5F9', 
+                    color: '#475569', 
+                    padding: '6px 12px', 
+                    borderRadius: '20px', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px' 
                   }}>
                     {order.status}
                   </span>
+
                 </div>
               </div>
               
@@ -93,23 +102,47 @@ function PickScreen() {
                     </div>
                     {item.status === "Pending" && (
                       <div style={{ display: 'flex', gap: '5px' }}>
+                        
+                        {/* UPDATED: Tonal Green Pick Button */}
                         <button 
                           onClick={() => handlePickItem(order, index)} 
-                          style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                          style={{ 
+                            backgroundColor: '#EAFAF1', 
+                            color: '#27AE60', 
+                            border: '1px solid #27AE60', 
+                            padding: '6px 16px', 
+                            borderRadius: '6px', 
+                            fontSize: '13px', 
+                            fontWeight: 'bold', 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
                         >
                           Pick
                         </button>
 
+                        {/* UPDATED: Tonal Red Exception Dropdown */}
                         <select 
                           onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
-                          style={{ padding: '2px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#C0392B', color: 'white', border: 'none', borderRadius: '4px' }}
+                          style={{ 
+                            backgroundColor: '#FDEDEC', 
+                            color: '#E74C3C', 
+                            border: '1px solid #E74C3C', 
+                            padding: '6px 16px', 
+                            borderRadius: '6px', 
+                            fontSize: '13px', 
+                            fontWeight: 'bold', 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
                           defaultValue=""
                         >
-                          <option value="" disabled>X</option>
+                          <option value="" disabled>Exception</option>
                           <option value="Out of Stock">Out of Stock</option>
                           <option value="Damaged">Damaged</option>
                           <option value="Misplaced">Misplaced</option>
                         </select>
+
                       </div>
                     )}
                   </li>

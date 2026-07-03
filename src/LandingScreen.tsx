@@ -35,7 +35,7 @@ function LandingScreen() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#131E3A', padding: '20px' }}>
+    <div style={{ minHeight: '25vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#131E3A', padding: '20px' }}>
       <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
         
         <div style={{ marginBottom: '30px' }}>
