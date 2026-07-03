@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "./firebase";
 import { useIntegration } from "./IntegrationContext";
 
 // Individual Card Component to handle local verification state
-const PickupCard = ({ order, onComplete }: { order: any, onComplete: (order: any) => void }) => {
+const PickupCard = ({ order, onComplete, onCancel }: { order: any, onComplete: (order: any) => void, onCancel: (order: any) => void }) => {
   const [isVerified, setIsVerified] = useState(false);
 
   return (
@@ -46,18 +46,42 @@ const PickupCard = ({ order, onComplete }: { order: any, onComplete: (order: any
           {isVerified ? "✅ ID / Email Confirmed" : "Verify Customer ID or Email"}
         </label>
 
-        <button 
-          onClick={() => onComplete(order)} // We now pass the full order object here
-          disabled={!isVerified}
-          style={{ 
-            backgroundColor: isVerified ? '#27AE60' : '#A0A0A0', 
-            color: 'white', border: 'none', padding: '12px 24px', borderRadius: '6px', 
-            cursor: isVerified ? 'pointer' : 'not-allowed', 
-            fontWeight: 'bold', fontSize: '14px', transition: 'background-color 0.3s'
-          }}
-        >
-          Complete Handoff
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => onCancel(order)}
+            style={{ 
+              backgroundColor: 'transparent', 
+              color: '#C0392B', 
+              border: '1px solid #C0392B', 
+              padding: '12px 15px', 
+              borderRadius: '6px', 
+              cursor: 'pointer', 
+              fontWeight: 'bold', 
+              fontSize: '13px', 
+              transition: 'all 0.2s'
+            }}
+          >
+            Cancel & Return to Stock
+          </button>
+          
+          <button 
+            onClick={() => onComplete(order)} 
+            disabled={!isVerified}
+            style={{ 
+              backgroundColor: isVerified ? '#27AE60' : '#A0A0A0', 
+              color: 'white', 
+              border: 'none', 
+              padding: '12px 24px', 
+              borderRadius: '6px', 
+              cursor: isVerified ? 'pointer' : 'not-allowed', 
+              fontWeight: 'bold', 
+              fontSize: '14px', 
+              transition: 'background-color 0.3s'
+            }}
+          >
+            Complete Handoff
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -67,7 +91,6 @@ function CustomerPickupScreen() {
   const [pickupOrders, setPickupOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Bring in the integration hook
   const { addEvent } = useIntegration();
 
   const fetchPickupOrders = async () => {
@@ -91,13 +114,11 @@ function CustomerPickupScreen() {
 
   const handleCompletePickup = async (order: any) => {
     try {
-      // 1. Update Firebase
       await updateDoc(doc(db, "orders", order.id), { 
         status: "Completed",
         pickupTime: new Date().toISOString()
       });
 
-      // 2. Fire the real-time OMS payload for Proof of Delivery / Revenue Recognition
       addEvent("BOPIS_ORDER_COMPLETED", {
         orderId: order.orderId,
         customer: order.customer?.name,
@@ -113,7 +134,6 @@ function CustomerPickupScreen() {
         }
       });
 
-      // 3. Refresh the UI
       fetchPickupOrders(); 
     } catch (error) {
       console.error("Error completing pickup: ", error);
@@ -121,7 +141,60 @@ function CustomerPickupScreen() {
     }
   };
 
-  // Filter logic for the search bar
+  const handleCancelOrder = async (order: any) => {
+    const confirmCancel = window.confirm(`Are you sure you want to mark Order ${order.orderId} as abandoned and return items to stock?`);
+    if (!confirmCancel) return;
+
+    try {
+      // 1. Update Firebase Order Status
+      await updateDoc(doc(db, "orders", order.id), { 
+        status: "Cancelled_Abandoned",
+        cancelTime: new Date().toISOString()
+      });
+
+      // 2. Loop through picked items and return them to inventory
+      for (const item of order.items) {
+        if (item.status === "Picked") {
+          await updateDoc(doc(db, "products", item.sku), { 
+            stock: increment(item.quantity) 
+          });
+
+          // Fire individual RESTOCK events for the ERP
+          addEvent("INVENTORY_INCREMENT", {
+            orderId: order.orderId,
+            sku: item.sku,
+            itemName: item.name,
+            quantityChange: item.quantity,
+            reasonCode: "RETURN_TO_STOCK_ABANDONED",
+            location: {
+              storeId: "STR-042",
+              nodeType: "RETAIL_STORE",
+              returnedFrom: order.stagingLocation || "Front Desk"
+            },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      // 3. Fire the OMS Cancellation event for refund processing
+      addEvent("OMS_ORDER_CANCELLED", {
+        orderId: order.orderId,
+        customer: order.customer?.name,
+        reasonCode: "BOPIS_ABANDONED",
+        action: "INITIATE_CUSTOMER_REFUND",
+        location: {
+          storeId: "STR-042"
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      fetchPickupOrders(); 
+    } catch (error) {
+      console.error("Error cancelling order: ", error);
+      alert("Failed to process order abandonment.");
+    }
+  };
+
   const filteredOrders = pickupOrders.filter(order => 
     order.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -160,7 +233,12 @@ function CustomerPickupScreen() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {filteredOrders.map(order => (
-            <PickupCard key={order.id} order={order} onComplete={handleCompletePickup} />
+            <PickupCard 
+              key={order.id} 
+              order={order} 
+              onComplete={handleCompletePickup} 
+              onCancel={handleCancelOrder}
+            />
           ))}
         </div>
       )}
