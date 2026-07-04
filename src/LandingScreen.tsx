@@ -36,11 +36,21 @@ function LandingScreen() {
 
   return (
     <div style={{ minHeight: '25vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#131E3A', padding: '20px' }}>
-      <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+      {/* Updated Module: Dark navy bubble to match dashboard theme */}
+      <div style={{ 
+        backgroundColor: '#1a2a4a', 
+        border: '2px solid #2c4a70', 
+        borderRadius: '12px', 
+        padding: '40px', 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)', 
+        width: '100%', 
+        maxWidth: '400px', 
+        textAlign: 'center' 
+      }}>
         
         <div style={{ marginBottom: '30px' }}>
           <img src="/logo.png" alt="SwiftPick Logo" style={{ height: '45px', marginBottom: '5px' }} />
-          <p style={{ margin: '5px 0 0 0', color: '#7F8C8D', fontSize: '14px' }}>In-Store Fulfillment App</p>
+          <p style={{ margin: '5px 0 0 0', color: '#BDC3C7', fontSize: '14px', fontWeight: '500' }}>In-Store Fulfillment App</p>
         </div>
 
         {errorMsg && (
@@ -51,30 +61,48 @@ function LandingScreen() {
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ textAlign: 'left' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#555', marginBottom: '8px' }}>Employee ID</label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#BDC3C7', marginBottom: '8px' }}>Employee ID</label>
             <input 
               type="text" 
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. manager01"
-              style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #CCC', fontSize: '16px', boxSizing: 'border-box' }}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                borderRadius: '6px', 
+                border: '1px solid #2c4a70', 
+                backgroundColor: '#131E3A', 
+                color: '#FFFFFF', 
+                fontSize: '16px', 
+                boxSizing: 'border-box' 
+              }}
             />
           </div>
 
           <div style={{ textAlign: 'left' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#555', marginBottom: '8px' }}>PIN</label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#BDC3C7', marginBottom: '8px' }}>PIN</label>
             <input 
               type="password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••"
-              style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #CCC', fontSize: '16px', boxSizing: 'border-box' }}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                borderRadius: '6px', 
+                border: '1px solid #2c4a70', 
+                backgroundColor: '#131E3A', 
+                color: '#FFFFFF', 
+                fontSize: '16px', 
+                boxSizing: 'border-box' 
+              }}
             />
           </div>
 
-          <button type="submit" style={{ backgroundColor: '#27AE60', color: 'white', border: 'none', padding: '14px', borderRadius: '6px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>
+          <button type="submit" style={{ backgroundColor: '#2980B9', color: 'white', border: 'none', padding: '14px', borderRadius: '6px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>
             Secure Login
           </button>
         </form>

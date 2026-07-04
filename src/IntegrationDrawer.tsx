@@ -5,6 +5,31 @@ function IntegrationDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const { events } = useIntegration();
 
+  // Custom JSON Syntax Highlighter
+  const syntaxHighlight = (json: any) => {
+    let jsonStr = typeof json !== 'string' ? JSON.stringify(json, null, 2) : json;
+    
+    // Escape HTML characters to prevent rendering issues
+    jsonStr = jsonStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Regex to wrap JSON elements in styled spans
+    return jsonStr.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match: string) {
+      let color = '#B5CEA8'; // Numbers (Green)
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          color = '#9CDCFE'; // Keys (Light Blue)
+        } else {
+          color = '#CE9178'; // Strings (Orange)
+        }
+      } else if (/true|false/.test(match)) {
+        color = '#569CD6'; // Booleans (Dark Blue)
+      } else if (/null/.test(match)) {
+        color = '#569CD6'; // Null (Dark Blue)
+      }
+      return `<span style="color: ${color};">${match}</span>`;
+    });
+  };
+
   return (
     <>
       {/* Floating Action Button - ONLY renders when the drawer is closed */}
@@ -42,7 +67,7 @@ function IntegrationDrawer() {
           top: 0,
           right: 0,
           height: '100vh',
-          width: window.innerWidth < 600 ? '100%' : '450px',
+          width: window.innerWidth < 600 ? '100%' : '500px', // Widened slightly for complex JSON
           backgroundColor: '#1E1E1E',
           color: '#D4D4D4',
           boxShadow: '-5px 0 25px rgba(0,0,0,0.5)',
@@ -68,7 +93,7 @@ function IntegrationDrawer() {
           </button>
         </div>
 
-        {/* Log Feed - REMOVED flex properties, relying on standard block layout */}
+        {/* Log Feed */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '80px' }}>
           
           {events.length === 0 ? (
@@ -78,7 +103,7 @@ function IntegrationDrawer() {
           ) : (
             events.map((evt) => (
               <div key={evt.id} style={{ 
-                marginBottom: '20px', // Replaces the flex gap
+                marginBottom: '20px', 
                 backgroundColor: '#2D2D30', 
                 borderRadius: '6px', 
                 overflow: 'hidden', 
@@ -86,16 +111,17 @@ function IntegrationDrawer() {
               }}>
                 
                 {/* Event Header */}
-                <div style={{ backgroundColor: '#333337', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #3E3E42' }}>
-                  <span style={{ fontSize: '12px', color: '#4EC9B0', fontWeight: 'bold' }}>{evt.type}</span>
-                  <span style={{ fontSize: '11px', color: '#888' }}>{evt.timestamp}</span>
+                <div style={{ backgroundColor: '#333337', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #3E3E42' }}>
+                  <span style={{ fontSize: '13px', color: '#4EC9B0', fontWeight: 'bold' }}>{evt.type}</span>
+                  <span style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{evt.timestamp}</span>
                 </div>
                 
-                {/* Event Payload (JSON) */}
-                <div style={{ padding: '12px', overflowX: 'auto' }}>
-                  <pre style={{ margin: 0, fontSize: '12px', fontFamily: 'monospace', color: '#CE9178', lineHeight: '1.4', textAlign: 'left'}}>
-                    {JSON.stringify(evt.payload, null, 2)}
-                  </pre>
+                {/* Event Payload (Now with Syntax Highlighting) */}
+                <div style={{ padding: '15px', overflowX: 'auto', backgroundColor: '#1E1E1E' }}>
+                  <pre 
+                    style={{ margin: 0, fontSize: '13px', fontFamily: 'Consolas, Monaco, monospace', lineHeight: '1.5', textAlign: 'left', color: '#D4D4D4'}}
+                    dangerouslySetInnerHTML={{ __html: syntaxHighlight(evt.payload) }}
+                  />
                 </div>
   
               </div>

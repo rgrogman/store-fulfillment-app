@@ -78,18 +78,56 @@ function PickScreen() {
     fetchOrders();
   };
 
+  // Helper function to dynamically style the status pills
+  const getItemStatusStyle = (status: string) => {
+    const baseStyle = {
+      padding: '4px 10px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      display: 'inline-block',
+      marginTop: '6px'
+    };
+
+    if (status === "Picked") {
+      return {
+        ...baseStyle,
+        backgroundColor: '#EAFAF1',
+        color: '#27AE60',
+        border: '1px solid #27AE60'
+      };
+    } else if (status.includes("Exception")) {
+      return {
+        ...baseStyle,
+        backgroundColor: '#FDEDEC',
+        color: '#E74C3C',
+        border: '1px solid #E74C3C'
+      };
+    } else {
+      // Pending
+      return {
+        ...baseStyle,
+        backgroundColor: '#F1F5F9',
+        color: '#475569',
+        border: '1px solid #CBD5E1'
+      };
+    }
+  };
+
   return (
     <div style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Active Pick List</h1>
+      <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px', color: '#E0E0E0' }}>Active Pick List</h1>
       
       {orders.length === 0 ? (
         <p style={{ color: '#A0A0A0' }}>No pending orders. Store is caught up!</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {orders.map((order) => (
-            <div key={order.id} style={{ border: '1px solid #E0E0E0', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div key={order.id} style={{ border: '1px solid #2C3E50', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px' }}>Order {order.orderId}</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', color: '#2C3E50' }}>Order {order.orderId}</h3>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   
                   <span style={{ 
@@ -108,18 +146,24 @@ function PickScreen() {
                 </div>
               </div>
               
-              <p style={{ fontSize: '14px', color: '#555' }}><strong>Customer:</strong> {order.customer?.name}</p>
-              <ul style={{ margin: '10px 0', paddingLeft: '20px', fontSize: '15px' }}>
+              <p style={{ fontSize: '14px', color: '#555', borderBottom: '1px solid #E0E0E0', paddingBottom: '15px', marginBottom: '15px' }}>
+                <strong>Customer:</strong> {order.customer?.name}
+              </p>
+              
+              <ul style={{ margin: '0', padding: '0', listStyle: 'none' }}>
                 {order.items?.map((item: any, index: number) => (
-                  <li key={index} style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <li key={index} style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <strong>{item.quantity}x</strong> {item.name} 
-                      <div style={{ fontSize: '11px', color: item.status?.includes('Exception') ? '#C0392B' : '#888' }}>
-                        Status: {item.status}
+                      <strong style={{ fontSize: '15px' }}>{item.quantity}x</strong> <span style={{ fontSize: '15px' }}>{item.name}</span>
+                      <div>
+                        {/* Dynamic Status Pill */}
+                        <span style={getItemStatusStyle(item.status)}>
+                          {item.status}
+                        </span>
                       </div>
                     </div>
                     {item.status === "Pending" && (
-                      <div style={{ display: 'flex', gap: '5px' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
                         
                         <button 
                           onClick={() => handlePickItem(order, index)} 
@@ -127,7 +171,7 @@ function PickScreen() {
                             backgroundColor: '#EAFAF1', 
                             color: '#27AE60', 
                             border: '1px solid #27AE60', 
-                            padding: '6px 16px', 
+                            padding: '8px 16px', 
                             borderRadius: '6px', 
                             fontSize: '13px', 
                             fontWeight: 'bold', 
@@ -144,7 +188,7 @@ function PickScreen() {
                             backgroundColor: '#FDEDEC', 
                             color: '#E74C3C', 
                             border: '1px solid #E74C3C', 
-                            padding: '6px 16px', 
+                            padding: '8px 16px', 
                             borderRadius: '6px', 
                             fontSize: '13px', 
                             fontWeight: 'bold', 
