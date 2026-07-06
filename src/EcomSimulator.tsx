@@ -274,6 +274,7 @@ function EcomSimulator() {
             >
               <option value="Standard">Standard (3-5 Days)</option>
               <option value="Priority">Priority (2-Day)</option>
+              <option value="Overnight">Overnight (Next Day)</option>
             </select>
           </div>
         </div>

@@ -88,21 +88,21 @@ function DailyOrdersScreen() {
               </tr>
             </thead>
             <tbody>
-  {filteredOrders.map(order => (
-    <tr key={order.id} style={{ borderBottom: '1px solid #E0E0E0' }}>
-      <td style={{ padding: '15px', fontSize: '14px',fontWeight: 'bold' }}>
-        {order.orderId}
-        {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
-      </td>
-      <td style={{ padding: '15px', fontSize: '14px' }}>{order.customer?.name}</td>
-      <td style={{ padding: '15px', fontSize: '14px' }}>{order.orderType}</td>
-      <td style={{ padding: '15px', fontSize: '14px' }}>{getStatusBadge(order.status)}</td>
-      <td style={{ padding: '15px', fontSize: '14px', textAlign: 'right' }}>
-        <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Details</button>
-      </td>
-    </tr>
-  ))}
-</tbody>
+              {filteredOrders.map(order => (
+                <tr key={order.id} style={{ borderBottom: '1px solid #E0E0E0' }}>
+                  <td style={{ padding: '15px', fontSize: '14px',fontWeight: 'bold' }}>
+                    {order.orderId}
+                    {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
+                  </td>
+                  <td style={{ padding: '15px', fontSize: '14px' }}>{order.customer?.name}</td>
+                  <td style={{ padding: '15px', fontSize: '14px' }}>{order.orderType}</td>
+                  <td style={{ padding: '15px', fontSize: '14px' }}>{getStatusBadge(order.status)}</td>
+                  <td style={{ padding: '15px', fontSize: '14px', textAlign: 'right' }}>
+                    <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Details</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
 
@@ -111,8 +111,9 @@ function DailyOrdersScreen() {
           {filteredOrders.map(order => (
             <div key={order.id} style={{ padding: '15px', border: '1px solid #E0E0E0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 'bold', color: '#041053' }}>{order.orderId} {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
-    </div>
+                <div style={{ fontWeight: 'bold', color: '#041053' }}>
+                  {order.orderId} {order.exceptionNotes && <span style={{ marginLeft: '8px', color: '#C0392B' }}>⚠️</span>}
+                </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>{order.customer?.name}</div>
               </div>
               <button onClick={() => setSelectedOrder(order)} style={{ backgroundColor: '#EAF2F8', color: '#2980B9', border: '1px solid #2980B9', padding: '8px 12px', borderRadius: '4px', fontWeight: 'bold' }}>Details</button>
@@ -150,9 +151,25 @@ function DailyOrdersScreen() {
               {selectedOrder.stagingLocation && <><br/><strong>Staged At:</strong> {selectedOrder.stagingLocation}</>}
             </div>
 
-            {selectedOrder.exceptionNotes && (
-              <div style={{ backgroundColor: '#FDEDEC', borderLeft: '4px solid #C0392B', padding: '10px 15px', marginBottom: '20px', fontSize: '13px', color: '#C0392B' }}>
-                <strong>Exception Log:</strong> {selectedOrder.exceptionNotes}
+            {/* Dynamic Exception Log rendering */}
+            {(selectedOrder.exceptionNotes || selectedOrder.items?.some((item: any) => item.status?.includes('Exception'))) && (
+              <div style={{ backgroundColor: '#FDEDEC', borderLeft: '4px solid #C0392B', padding: '15px', marginBottom: '20px', fontSize: '13px', color: '#C0392B' }}>
+                {selectedOrder.exceptionNotes && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <strong>Exception Log:</strong> {selectedOrder.exceptionNotes}
+                  </div>
+                )}
+                
+                {/* Find and list the specific problem items */}
+                {selectedOrder.items?.filter((item: any) => item.status?.includes('Exception')).length > 0 && (
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                    {selectedOrder.items.filter((item: any) => item.status?.includes('Exception')).map((item: any, index: number) => (
+                      <li key={index} style={{ marginBottom: '4px' }}>
+                        ITEM {item.sku} - {item.name} - <strong>{item.status.replace('Exception: ', '')}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
@@ -161,7 +178,7 @@ function DailyOrdersScreen() {
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
                 {selectedOrder.items?.map((item: any, index: number) => (
                   <li key={index} style={{ marginBottom: '6px' }}>
-                    {item.quantity}x {item.name} <span style={{ color: '#7F8C8D', fontStyle: 'italic' }}>({item.status})</span>
+                    {item.quantity}x {item.name} <span style={{ color: item.status?.includes('Exception') ? '#C0392B' : '#7F8C8D', fontStyle: 'italic' }}>({item.status})</span>
                   </li>
                 ))}
               </ul>

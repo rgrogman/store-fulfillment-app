@@ -16,7 +16,6 @@ function ExceptionScreen() {
         setIsAuthorized(false);
       }
     } else {
-      // Kick them out if they aren't logged in at all
       window.location.href = "/"; 
     }
   }, []);
@@ -51,33 +50,25 @@ function ExceptionScreen() {
       const updatedItems = [...orderData.items];
       const overriddenItem = updatedItems[itemIndex];
 
-      // 1. Change the item status back to Picked
       overriddenItem.status = "Picked";
 
-      // 2. Decrement the inventory (since it wasn't decremented during the initial exception)
       await updateDoc(doc(db, "products", overriddenItem.sku), { 
         stock: increment(-overriddenItem.quantity) 
       });
 
-      // NEW: Fire the delayed decrement payload to the Integration Stream
       addEvent("INVENTORY_DECREMENT", {
         orderId: orderData.orderId,
         sku: overriddenItem.sku,
         itemName: overriddenItem.name,
         quantityChange: -overriddenItem.quantity,
         reasonCode: "MANAGER_OVERRIDE_PICK",
-        location: {
-          storeId: "STR-042",
-          nodeType: "RETAIL_STORE"
-        },
+        location: { storeId: "STR-042", nodeType: "RETAIL_STORE" },
         timestamp: new Date().toISOString()
       });
 
-      // 3. Check if the order is completely resolved
       const stillHasExceptions = updatedItems.some((item: any) => item.status.includes("Exception"));
       const newOrderStatus = stillHasExceptions ? "Exception" : "Picked";
 
-      // 4. Update the order and refresh UI
       await updateDoc(orderRef, {
         items: updatedItems,
         status: newOrderStatus
@@ -103,22 +94,17 @@ function ExceptionScreen() {
 
       const orderData = orderSnap.data();
 
-      // Separate the successful picks from the exceptions
       const goodItems = orderData.items.filter((item: any) => item.status === "Picked");
       const badItems = orderData.items.filter((item: any) => item.status.includes("Exception"));
 
-      // NEW: Fire the exception payload to the OMS for the rejected items
       badItems.forEach((item: any) => {
         addEvent("OMS_EXCEPTION_ROUTING", {
           orderId: orderData.orderId,
           sku: item.sku,
           itemName: item.name,
-          // Cleans up the string (e.g., "Exception: Damaged" becomes "DAMAGED")
           reasonCode: item.status.replace("Exception: ", "").toUpperCase().replace(/\s+/g, '_'),
           action: "REROUTE_TO_DC",
-          location: {
-            storeId: "STR-042"
-          },
+          location: { storeId: "STR-042" },
           timestamp: new Date().toISOString()
         });
       });
@@ -126,15 +112,15 @@ function ExceptionScreen() {
       if (goodItems.length > 0) {
         // Split & Release workflow
         await updateDoc(orderRef, {
-          items: goodItems,
+          items: orderData.items, // FIXED: Retain the full manifest for historical accuracy
           status: "Picked", 
           exceptionNotes: `System split: ${badItems.length} item(s) rejected to OMS.`
         });
         alert(`Split & Release Successful.\n\n${goodItems.length} item(s) released to Pack & Ship.\n${badItems.length} item(s) rejected back to OMS for re-routing.`);
       } else {
-        // Total Failure workflow (Nothing was picked)
+        // Total Failure workflow
         await updateDoc(orderRef, {
-          status: "Rejected_To_OMS" // Removes it from all active store views
+          status: "Rejected_To_OMS" 
         });
         alert(`Total Exception Confirmed.\n\nEntire order rejected back to OMS for re-routing or cancellation.`);
       }
@@ -177,7 +163,6 @@ function ExceptionScreen() {
           {exceptionOrders.map((order) => (
             <div key={order.id} style={{ border: '1px solid #E0E0E0', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               
-              {/* Order Header */}
               <div style={{ backgroundColor: '#FADBD8', padding: '15px 20px', borderBottom: '1px solid #E0E0E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px', color: '#C0392B' }}>Order {order.orderId}</h3>
@@ -193,7 +178,6 @@ function ExceptionScreen() {
                 </button>
               </div>
 
-              {/* Order Items List */}
               <div style={{ padding: '20px' }}>
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#555', textTransform: 'uppercase' }}>Item Manifest</h4>
                 
@@ -216,7 +200,6 @@ function ExceptionScreen() {
                           </div>
                         </div>
 
-                        {/* Only show Override button for problem items */}
                         {isException && (
                           <button 
                             onClick={() => handleOverride(order.id, index)}

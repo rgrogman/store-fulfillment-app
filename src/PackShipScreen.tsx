@@ -3,18 +3,15 @@ import { collection, query, where, getDocs, doc, updateDoc } from "firebase/fire
 import { db } from "./firebase";
 import { useIntegration } from "./IntegrationContext";
 
-// Upgraded Order Card with Smart Cartonization and Split Shipments
 const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, onProcess: (order: any, extraData?: any) => void }) => {
   const { addEvent } = useIntegration();
 
-  // --- SFS Smart Carton State ---
   const [cartons, setCartons] = useState<any[]>([]);
-  const [itemAssignments, setItemAssignments] = useState<any>({}); // Maps item index to carton ID
+  const [itemAssignments, setItemAssignments] = useState<any>({}); 
   const [showLabelModal, setShowLabelModal] = useState(false);
   const [isLabelPrinted, setIsLabelPrinted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // --- BOPIS State ---
   const [stagingBin, setStagingBin] = useState("");
 
   const getSpeedColor = (speed: string) => {
@@ -23,17 +20,21 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
     return "#7F8C8D";                            
   };
 
-  // 1. SMART CARTONIZATION ALGORITHM (Runs on Mount)
+  // Extract only the items that were successfully picked
+  const validItemsToPack = order.items?.filter((item: any) => item.status === "Picked") || [];
+
   useEffect(() => {
+    // Only calculate carton sizes based on items physically present to be packed
     if (isSfs && order.items) {
       let totalVolume = 0;
       const initialAssignments: any = {};
       
-      order.items.forEach((item: any, index: number) => {
-        // Mocking a volume unit (in production, this pulls from the product DB)
+      const pickedItems = order.items.filter((item: any) => item.status === "Picked");
+      
+      pickedItems.forEach((item: any, index: number) => {
         const mockVolumeUnit = item.name.toLowerCase().includes("jacket") ? 8 : 2; 
         totalVolume += (item.quantity * mockVolumeUnit);
-        initialAssignments[index] = 1; // Default all items to Carton 1
+        initialAssignments[index] = 1; 
       });
 
       let recBox = "Polybag";
@@ -47,14 +48,12 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
     }
   }, [isSfs, order]);
 
-  // --- MULTI-CARTON ACTIONS ---
   const handleAddCarton = () => {
-    if (cartons.length >= 3) return; // Cap at 3 for demo purposes
+    if (cartons.length >= 3) return; 
     setCartons([...cartons, { id: cartons.length + 1, type: "Medium Box", tracking: "" }]);
   };
 
   const handleRemoveCarton = (cartonId: number) => {
-    // Reassign items back to Carton 1
     const newAssignments = { ...itemAssignments };
     Object.keys(newAssignments).forEach(idx => {
       if (newAssignments[idx] === cartonId) newAssignments[idx] = 1;
@@ -71,7 +70,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
     setIsGenerating(true);
     const updatedCartons = [...cartons];
 
-    // Fire API events for each distinct carton
     updatedCartons.forEach((carton, index) => {
       const newTracking = "1Z" + Math.random().toString(36).substring(2, 10).toUpperCase();
       carton.tracking = newTracking;
@@ -87,19 +85,17 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
         }
       });
 
-      // Stagger the API responses slightly for a realistic effect in the event stream
       setTimeout(() => {
         addEvent("SHIPPING_API_RESPONSE", {
           orderId: `${order.orderId}-BOX${carton.id}`,
           status: 201,
           response: {
             tracking_code: newTracking,
-            rate_usd: carton.type === "Polybag" ? 4.50 : 8.45 + (index * 2), // Mock pricing
+            rate_usd: carton.type === "Polybag" ? 4.50 : 8.45 + (index * 2), 
             carrier: "UPS"
           }
         });
 
-        // If this is the last carton in the loop, show the modal
         if (index === updatedCartons.length - 1) {
           setCartons(updatedCartons);
           setIsGenerating(false);
@@ -121,7 +117,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
     <>
       <div style={{ border: '1px solid #E0E0E0', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
         
-        {/* Order Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', color: '#2C3E50' }}>Order {order.orderId}</h3>
@@ -139,11 +134,11 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
           </div>
         </div>
         
-        {/* Item Manifest */}
+        {/* Pack Verification: Only shows valid, physically present items */}
         <div style={{ backgroundColor: '#F8F9FA', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid #EAECEE' }}>
           <strong style={{ display: 'block', marginBottom: '10px', color: '#34495E' }}>Pack Verification:</strong>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
-            {order.items?.map((item: any, index: number) => (
+            {validItemsToPack.map((item: any, index: number) => (
               <li key={index} style={{ marginBottom: '6px' }}>
                 <strong>{item.quantity}x</strong> {item.name}
               </li>
@@ -151,7 +146,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
           </ul>
         </div>
 
-        {/* SFS SMART PACKAGING WORKFLOW */}
         {isSfs ? (
           <div style={{ borderTop: '2px solid #EAECEE', paddingTop: '20px' }}>
             {!isLabelPrinted ? (
@@ -167,7 +161,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
                   )}
                 </div>
 
-                {/* Render Each Carton */}
                 {cartons.map((carton, index) => (
                   <div key={carton.id} style={{ backgroundColor: '#F4F6F7', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: '1px solid #D5DBDB' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -204,11 +197,11 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
                   + Split Shipment (Add Carton)
                 </button>
 
-                {/* Line Item Assignment (Only visible if split) */}
+                {/* Line Item Assignment: Only maps valid, physically present items */}
                 {cartons.length > 1 && (
                   <div style={{ backgroundColor: '#FEF9E7', padding: '15px', borderRadius: '8px', border: '1px solid #F1C40F', marginBottom: '20px' }}>
                     <strong style={{ display: 'block', fontSize: '13px', color: '#B7950B', marginBottom: '10px' }}>Assign Items to Cartons</strong>
-                    {order.items.map((item: any, idx: number) => (
+                    {validItemsToPack.map((item: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '13px' }}>
                         <span>{item.name}</span>
                         <select 
@@ -240,7 +233,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
                 </button>
               </>
             ) : (
-              // STEP 3: Physical Handoff
               <div style={{ backgroundColor: '#EAF2F8', padding: '20px', borderRadius: '8px', border: '1px solid #2980B9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                   <span style={{ fontSize: '24px' }}>✅</span>
@@ -263,7 +255,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
             )}
           </div>
         ) : (
-          // --- BOPIS WORKFLOW ---
           <div style={{ borderTop: '2px solid #EAECEE', paddingTop: '20px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', color: '#2C3E50' }}>
               1. Enter Staging Location
@@ -286,13 +277,11 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
         )}
       </div>
 
-      {/* MULTI-LABEL MODAL */}
       {showLabelModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
           backgroundColor: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px'
         }}>
-          {/* Scrollable container for multiple labels */}
           <div style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', maxWidth: '450px' }}>
             
             {cartons.map((carton, index) => (
@@ -352,7 +341,6 @@ const OrderCard = ({ order, isSfs, onProcess }: { order: any, isSfs: boolean, on
   );
 };
 
-// MAIN SCREEN COMPONENT
 function PackShipScreen() {
   const [sfsOrders, setSfsOrders] = useState<any[]>([]);
   const [bopisOrders, setBopisOrders] = useState<any[]>([]);
@@ -386,7 +374,6 @@ function PackShipScreen() {
     try {
       await updateDoc(doc(db, "orders", order.id), { status: "Shipped" });
       
-      // Map the cartons into the final OMS Payload
       const shipmentDetails = extraData?.cartons?.map((c: any) => ({
         cartonId: c.id,
         packaging: c.type,
