@@ -112,7 +112,7 @@ function ExceptionScreen() {
       if (goodItems.length > 0) {
         // Split & Release workflow
         await updateDoc(orderRef, {
-          items: orderData.items, // FIXED: Retain the full manifest for historical accuracy
+          items: orderData.items, 
           status: "Picked", 
           exceptionNotes: `System split: ${badItems.length} item(s) rejected to OMS.`
         });
@@ -146,7 +146,7 @@ function ExceptionScreen() {
   }
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ padding: '40px 20px', maxWidth: '950px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: '2px solid #C0392B', paddingBottom: '15px' }}>
         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#E0E0E0' }}>Manager Resolution Queue</h1>
         <span style={{ backgroundColor: '#C0392B', color: '#FFFFFF', padding: '6px 15px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold' }}>
@@ -159,59 +159,85 @@ function ExceptionScreen() {
           <p style={{ color: '#A0A0A0', fontSize: '16px', margin: 0 }}>Queue is clear. No active exceptions.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
           {exceptionOrders.map((order) => (
-            <div key={order.id} style={{ border: '1px solid #E0E0E0', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <div key={order.id} style={{ border: '1px solid #EAECEE', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
               
-              <div style={{ backgroundColor: '#FADBD8', padding: '15px 20px', borderBottom: '1px solid #E0E0E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* Card Header */}
+              <div style={{ backgroundColor: '#FADBD8', padding: '20px 25px', borderBottom: '1px solid #EAECEE', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', color: '#C0392B' }}>Order {order.orderId}</h3>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#555' }}>
-                    <strong>Type:</strong> {order.orderType} | <strong>Customer:</strong> {order.customer?.name}
-                  </p>
+                  <h3 style={{ margin: 0, fontSize: '20px', color: '#C0392B', fontWeight: 'bold' }}>Order {order.orderId}</h3>
+                  <div style={{ display: 'flex', gap: '15px', marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                    <span><strong>Type:</strong> {order.orderType}</span>
+                    <span><strong>Customer:</strong> {order.customer?.name}</span>
+                  </div>
                 </div>
                 <button 
                   onClick={() => handleConfirmException(order.id)}
-                  style={{ backgroundColor: '#C0392B', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ backgroundColor: '#C0392B', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'background-color 0.2s', boxShadow: '0 2px 8px rgba(192, 57, 43, 0.3)' }}
                 >
                   Confirm Exception & Release Order
                 </button>
               </div>
 
-              <div style={{ padding: '20px' }}>
-                <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#555', textTransform: 'uppercase' }}>Item Manifest</h4>
+              {/* Item Manifest Table */}
+              <div style={{ padding: '25px' }}>
+                <h4 style={{ margin: '0 0 15px 0', fontSize: '13px', color: '#7F8C8D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Item Manifest</h4>
                 
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {order.items?.map((item: any, index: number) => {
-                    const isException = item.status?.includes('Exception');
-                    
-                    return (
-                      <li key={index} style={{ 
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                        padding: '12px 15px', marginBottom: '10px', 
-                        backgroundColor: isException ? '#FDEDEC' : '#F8F9FA',
-                        borderLeft: isException ? '4px solid #C0392B' : '4px solid #27AE60',
-                        borderRadius: '4px'
-                      }}>
-                        <div>
-                          <strong style={{ fontSize: '15px' }}>{item.quantity}x {item.name}</strong>
-                          <div style={{ fontSize: '12px', color: isException ? '#C0392B' : '#27AE60', marginTop: '4px', fontWeight: 'bold' }}>
-                            Status: {item.status}
-                          </div>
-                        </div>
-
-                        {isException && (
-                          <button 
-                            onClick={() => handleOverride(order.id, index)}
-                            style={{ backgroundColor: '#F39C12', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Override to 'Picked'
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #EAECEE', color: '#7F8C8D', fontSize: '12px', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '10px 0', width: '50%' }}>Item</th>
+                      <th style={{ padding: '10px 0' }}>Qty</th>
+                      <th style={{ padding: '10px 0' }}>SKU</th>
+                      <th style={{ padding: '10px 0', textAlign: 'right' }}>Status / Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {order.items?.map((item: any, index: number) => {
+                      const isException = item.status?.includes('Exception');
+                      
+                      return (
+                        <tr key={index} style={{ borderBottom: index !== order.items.length - 1 ? '1px solid #EAECEE' : 'none', backgroundColor: isException ? '#FDEDEC' : '#FFF' }}>
+                          <td style={{ padding: '15px 10px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <div style={{ width: '50px', height: '50px', backgroundColor: '#F8F9FA', borderRadius: '6px', border: '1px solid #EAECEE', overflow: 'hidden', flexShrink: 0 }}>
+                              <img 
+                                src={`/images/${item.sku}.png`} 
+                                alt={item.name} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isException ? 0.6 : 1 }}
+                                onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/100x100/F8F9FA/6C757D?text=${item.name.charAt(0).toUpperCase()}`; }}
+                              />
+                            </div>
+                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: isException ? '#C0392B' : '#2C3E50' }}>
+                              {item.name}
+                            </span>
+                          </td>
+                          <td style={{ padding: '15px 10px', fontSize: '14px', fontWeight: 'bold', color: '#2C3E50' }}>{item.quantity}</td>
+                          <td style={{ padding: '15px 10px', fontSize: '13px', color: '#555' }}>{item.sku}</td>
+                          <td style={{ padding: '15px 10px', textAlign: 'right' }}>
+                            {isException ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                <span style={{ backgroundColor: '#FADBD8', color: '#C0392B', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #C0392B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  {item.status}
+                                </span>
+                                <button 
+                                  onClick={() => handleOverride(order.id, index)}
+                                  style={{ backgroundColor: '#F39C12', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                                >
+                                  Override to 'Picked'
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ backgroundColor: '#EAFAF1', color: '#27AE60', border: '1px solid #27AE60', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {item.status}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           ))}
