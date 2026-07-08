@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useIntegration } from "./IntegrationContext";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, setDoc, getDocs, writeBatch, addDoc, query, where } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, writeBatch, addDoc, query, where, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 function AdminScreen() {
-  const { clearEvents } = useIntegration(); // Pull the clear function from context
+  const { clearEvents } = useIntegration(); 
   const navigate = useNavigate();
+  const [isUpdating, setIsUpdating] = useState(false); // Added state for the image update
+
   const seedInventory = async () => {
     const catalog = [
       { sku: "SKU-1001", name: "Premium Cotton T-Shirt - White", stock: 45, category: "Apparel" },
@@ -41,6 +44,31 @@ function AdminScreen() {
     }
   };
 
+  // NEW: The utility function to update Firebase products with dummy images
+  const attachDummyImages = async () => {
+    setIsUpdating(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      
+      const updatePromises = querySnapshot.docs.map(async (document) => {
+        const sku = document.id;
+        const imageUrl = `https://picsum.photos/seed/${sku}/200/200`;
+        
+        return updateDoc(doc(db, "products", sku), {
+          imageUrl: imageUrl
+        });
+      });
+
+      await Promise.all(updatePromises);
+      alert("Success! All products have been updated with permanent demo images.");
+    } catch (error) {
+      console.error("Error updating images: ", error);
+      alert("Failed to update images.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const createDummyOrder = async () => {
     try {
       const isBopis = Math.random() > 0.5;
@@ -69,7 +97,6 @@ function AdminScreen() {
     
     try {
       const batch = writeBatch(db);
-      // Query specifically for Pending status
       const q = query(collection(db, "orders"), where("status", "==", "Pending"));
       const querySnapshot = await getDocs(q);
       
@@ -110,7 +137,6 @@ function AdminScreen() {
 
     try {
       for (const u of users) {
-        // We use the username as the actual Document ID for super fast lookups
         await setDoc(doc(db, "users", u.username), u);
       }
       alert("Success! Manager (5678) and Associate (1234) accounts created.");
@@ -119,19 +145,20 @@ function AdminScreen() {
       alert("Failed to create users.");
     }
   };
-// Uniform button styling to match your screenshot
+
   const adminButtonStyle = {
     padding: '15px',
-    backgroundColor: '#6C7A89', // Slate gray
+    backgroundColor: '#6C7A89', 
     color: '#FFFFFF',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: 'bold',
     fontSize: '14px',
-    width: '100%', // This forces the button to fill the grid cell completely
+    width: '100%', 
     transition: 'background-color 0.2s'
   };
+
   return (
     <div style={{ padding: '40px 20px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Demo Admin Controls</h1>
@@ -142,23 +169,33 @@ function AdminScreen() {
           Use these tools to reset the demo environment before a presentation.
         </p>
         
-        {/* Uniform Grid Container for Admin Controls */}
       <div style={{ 
         display: 'grid', 
-        /* 1 column on mobile, 3 equal columns on desktop */
         gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(3, 1fr)', 
         gap: '20px',
         maxWidth: '900px',
         margin: '0 auto' 
       }}>
         
-        {/* Make sure to re-attach your specific onClick functions to these buttons! */}
         <button onClick={seedUsers} style={adminButtonStyle}>
           Seed Demo Users
         </button>
         
         <button onClick={seedInventory}  style={adminButtonStyle}>
           Reset DB Inventory
+        </button>
+
+        {/* NEW: Attach Dummy Images Button */}
+        <button 
+          onClick={attachDummyImages} 
+          disabled={isUpdating}
+          style={{ 
+            ...adminButtonStyle, 
+            backgroundColor: isUpdating ? '#34495E' : '#6C7A89',
+            cursor: isUpdating ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isUpdating ? "Updating Images..." : "Attach Dummy Images"}
         </button>
         
         <button onClick={clearEvents}  style={adminButtonStyle}>

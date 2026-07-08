@@ -6,7 +6,6 @@ import { useIntegration } from "./IntegrationContext";
 function PickScreen() {
   const [orders, setOrders] = useState<any[]>([]);
   
-  // Bring in our API event stream hook
   const { addEvent } = useIntegration();
 
   const fetchOrders = async () => {
@@ -47,7 +46,6 @@ function PickScreen() {
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
     await updateDoc(doc(db, "products", pickedItem.sku), { stock: increment(-pickedItem.quantity) });
     
-    // NEW: Fire the real-time API event for the inventory decrement
     addEvent("INVENTORY_DECREMENT", {
       orderId: order.orderId,
       sku: pickedItem.sku,
@@ -71,14 +69,10 @@ function PickScreen() {
     exceptionItem.status = `Exception: ${reason}`;
     
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
-    
-    // REMOVED THE addEvent BLOCK FROM HERE
-
     await updateOrderStatus(order, updatedItems);
     fetchOrders();
   };
 
-  // Helper function to dynamically style the status pills
   const getItemStatusStyle = (status: string) => {
     const baseStyle = {
       padding: '4px 10px',
@@ -92,48 +86,35 @@ function PickScreen() {
     };
 
     if (status === "Picked") {
-      return {
-        ...baseStyle,
-        backgroundColor: '#EAFAF1',
-        color: '#27AE60',
-        border: '1px solid #27AE60'
-      };
+      return { ...baseStyle, backgroundColor: '#EAFAF1', color: '#27AE60', border: '1px solid #27AE60' };
     } else if (status.includes("Exception")) {
-      return {
-        ...baseStyle,
-        backgroundColor: '#FDEDEC',
-        color: '#E74C3C',
-        border: '1px solid #E74C3C'
-      };
+      return { ...baseStyle, backgroundColor: '#FDEDEC', color: '#E74C3C', border: '1px solid #E74C3C' };
     } else {
-      // Pending
-      return {
-        ...baseStyle,
-        backgroundColor: '#F1F5F9',
-        color: '#475569',
-        border: '1px solid #CBD5E1'
-      };
+      return { ...baseStyle, backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' };
     }
   };
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px', color: '#E0E0E0' }}>Active Pick List</h1>
+    <div style={{ padding: '40px 20px', maxWidth: '850px', margin: '0 auto' }}>
+      <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', marginBottom: '30px', color: '#E0E0E0', textAlign: 'center' }}>Active Pick List</h1>
       
       {orders.length === 0 ? (
-        <p style={{ color: '#A0A0A0' }}>No pending orders. Store is caught up!</p>
+        <div style={{ backgroundColor: '#131E3A', padding: '40px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2C3E50' }}>
+          <p style={{ color: '#A0A0A0', fontSize: '16px', margin: 0 }}>No pending orders. Store is caught up!</p>
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
           {orders.map((order) => (
-            <div key={order.id} style={{ border: '1px solid #2C3E50', padding: '20px', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#2C3E50' }}>Order {order.orderId}</h3>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  
+            <div key={order.id} style={{ border: '1px solid #EAECEE', borderRadius: '12px', backgroundColor: '#FFFFFF', color: '#1A1A1A', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+              
+              {/* Card Header */}
+              <div style={{ padding: '25px 25px 0 25px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', color: '#2C3E50', fontWeight: 'bold' }}>Order {order.orderId}</h3>
                   <span style={{ 
-                    backgroundColor: '#F1F5F9', 
-                    color: '#475569', 
-                    padding: '6px 12px', 
+                    backgroundColor: '#F8F9FA', 
+                    color: '#6C757D', 
+                    padding: '6px 14px', 
                     borderRadius: '20px', 
                     fontSize: '12px', 
                     fontWeight: 'bold', 
@@ -142,71 +123,117 @@ function PickScreen() {
                   }}>
                     {order.status}
                   </span>
-
+                </div>
+                
+                <div style={{ textAlign: 'center', paddingBottom: '20px', borderBottom: '1px solid #EAECEE' }}>
+                  <span style={{ fontSize: '14px', color: '#7F8C8D', fontWeight: 'bold' }}>Customer:</span> <span style={{ fontSize: '14px', color: '#2C3E50' }}>{order.customer?.name}</span>
                 </div>
               </div>
               
-              <p style={{ fontSize: '14px', color: '#555', borderBottom: '1px solid #E0E0E0', paddingBottom: '15px', marginBottom: '15px' }}>
-                <strong>Customer:</strong> {order.customer?.name}
-              </p>
-              
-              <ul style={{ margin: '0', padding: '0', listStyle: 'none' }}>
-                {order.items?.map((item: any, index: number) => (
-                  <li key={index} style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <strong style={{ fontSize: '15px' }}>{item.quantity}x</strong> <span style={{ fontSize: '15px' }}>{item.name}</span>
-                      <div>
-                        {/* Dynamic Status Pill */}
+              {/* Item Manifest */}
+              <ul style={{ margin: '0', padding: '0 25px 25px 25px', listStyle: 'none' }}>
+                {order.items?.map((item: any, index: number) => {
+                  const mockStock = (item.quantity * 3) + (item.sku?.charCodeAt(0) % 15 || 7); 
+                  const mockAisle = (item.sku?.charCodeAt(0) % 12) + 1 || 4;
+                  const mockBin = `${item.name?.charAt(0).toUpperCase() || 'B'}${(item.quantity * 7) % 20 + 1}`;
+                  
+                  return (
+                    <li key={index} style={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', // CHANGED: Pulls everything to the top of the row
+                      padding: '25px 0', 
+                      borderBottom: index !== order.items.length - 1 ? '1px solid #EAECEE' : 'none',
+                      gap: '20px'
+                    }}>
+                      
+                      {/* Product Image */}
+                      <div style={{
+                        width: '75px', height: '75px', 
+                        borderRadius: '8px', border: '1px solid #EAECEE',
+                        display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        overflow: 'hidden', flexShrink: 0, backgroundColor: '#F8F9FA'
+                      }}>
+                        <img 
+                          src={`/images/${item.sku}.png`} // CHANGED: Explicitly using .png as requested
+                          alt={item.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://placehold.co/100x100/F8F9FA/6C757D?text=${item.name.charAt(0).toUpperCase()}`;
+                          }}
+                        />
+                      </div>
+
+                      {/* Product Name & Status */}
+                      <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Item Details</span>
+                        <div style={{ fontSize: '13px', color: '#2C3E50', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textAlign: 'left' }}>
+                          <strong style={{ marginRight: '4px' }}>{item.quantity}x</strong> {item.name}
+                        </div>
                         <span style={getItemStatusStyle(item.status)}>
                           {item.status}
                         </span>
                       </div>
-                    </div>
-                    {item.status === "Pending" && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        
-                        <button 
-                          onClick={() => handlePickItem(order, index)} 
-                          style={{ 
-                            backgroundColor: '#EAFAF1', 
-                            color: '#27AE60', 
-                            border: '1px solid #27AE60', 
-                            padding: '8px 16px', 
-                            borderRadius: '6px', 
-                            fontSize: '13px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          Pick
-                        </button>
 
-                        <select 
-                          onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
-                          style={{ 
-                            backgroundColor: '#FDEDEC', 
-                            color: '#E74C3C', 
-                            border: '1px solid #E74C3C', 
-                            padding: '8px 16px', 
-                            borderRadius: '6px', 
-                            fontSize: '13px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Exception</option>
-                          <option value="Out of Stock">Out of Stock</option>
-                          <option value="Damaged">Damaged</option>
-                          <option value="Misplaced">Misplaced</option>
-                        </select>
-
+                      {/* On Hand Metric */}
+                      <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>On Hand</span>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1A1A1A', textAlign: 'left' }}>{mockStock}</span>
                       </div>
-                    )}
-                  </li>
-                ))}
+
+                      {/* Location Metric */}
+                      <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
+                        <span style={{ fontSize: '13px', color: '#2C3E50', textAlign: 'left' }}>Aisle <strong>{mockAisle}</strong></span>
+                        <span style={{ fontSize: '13px', color: '#2C3E50', textAlign: 'left' }}>Bin <strong>{mockBin}</strong></span>
+                      </div>
+
+                      {/* Actions - Added slight margin to align visually with the text underneath headers */}
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, marginTop: '16px' }}>
+                        {item.status === "Pending" && (
+                          <>
+                            <button 
+                              onClick={() => handlePickItem(order, index)} 
+                              style={{ 
+                                backgroundColor: 'transparent', 
+                                color: '#27AE60', 
+                                border: '1px solid #27AE60', 
+                                padding: '8px 20px', 
+                                borderRadius: '6px', 
+                                fontSize: '13px', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              Pick
+                            </button>
+
+                            <select 
+                              onChange={(e) => handleExceptionItem(order, index, e.target.value)} 
+                              style={{ 
+                                backgroundColor: 'transparent', 
+                                color: '#E74C3C', 
+                                border: '1px solid #E74C3C', 
+                                padding: '8px 16px', 
+                                borderRadius: '6px', 
+                                fontSize: '13px', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>Exception</option>
+                              <option value="Out of Stock">Out of Stock</option>
+                              <option value="Damaged">Damaged</option>
+                              <option value="Misplaced">Misplaced</option>
+                            </select>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
