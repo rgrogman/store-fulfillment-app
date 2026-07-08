@@ -5,6 +5,7 @@ import { useIntegration } from "./IntegrationContext";
 
 function PickScreen() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<Record<string, number>>({}); // NEW: Holds live stock levels
   
   const { addEvent } = useIntegration();
 
@@ -22,8 +23,23 @@ function PickScreen() {
     }
   };
 
+  // NEW: Fetch live product inventory from Firebase
+  const fetchInventory = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const stockData: Record<string, number> = {};
+      querySnapshot.docs.forEach(doc => {
+        stockData[doc.id] = doc.data().stock;
+      });
+      setInventory(stockData);
+    } catch (error) {
+      console.error("Error fetching inventory: ", error);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchInventory(); // Load inventory on page mount
   }, []);
 
   const updateOrderStatus = async (order: any, currentItems: any[]) => {
@@ -46,6 +62,12 @@ function PickScreen() {
     await updateDoc(doc(db, "orders", order.id), { items: updatedItems });
     await updateDoc(doc(db, "products", pickedItem.sku), { stock: increment(-pickedItem.quantity) });
     
+    // NEW: Optimistic UI update. Instantly deduct from the screen without waiting for a full reload.
+    setInventory(prev => ({
+      ...prev,
+      [pickedItem.sku]: (prev[pickedItem.sku] || pickedItem.quantity) - pickedItem.quantity
+    }));
+
     addEvent("INVENTORY_DECREMENT", {
       orderId: order.orderId,
       sku: pickedItem.sku,
@@ -133,14 +155,17 @@ function PickScreen() {
               {/* Item Manifest */}
               <ul style={{ margin: '0', padding: '0 25px 25px 25px', listStyle: 'none' }}>
                 {order.items?.map((item: any, index: number) => {
-                  const mockStock = (item.quantity * 3) + (item.sku?.charCodeAt(0) % 15 || 7); 
+                  
+                  // CHANGED: Pull the live stock directly from the database state instead of making it up
+                  const currentStock = inventory[item.sku] !== undefined ? inventory[item.sku] : '--';
+                  
                   const mockAisle = (item.sku?.charCodeAt(0) % 12) + 1 || 4;
                   const mockBin = `${item.name?.charAt(0).toUpperCase() || 'B'}${(item.quantity * 7) % 20 + 1}`;
                   
                   return (
                     <li key={index} style={{ 
                       display: 'flex', 
-                      alignItems: 'flex-start', // CHANGED: Pulls everything to the top of the row
+                      alignItems: 'flex-start',
                       padding: '25px 0', 
                       borderBottom: index !== order.items.length - 1 ? '1px solid #EAECEE' : 'none',
                       gap: '20px'
@@ -154,7 +179,7 @@ function PickScreen() {
                         overflow: 'hidden', flexShrink: 0, backgroundColor: '#F8F9FA'
                       }}>
                         <img 
-                          src={`/images/${item.sku}.png`} // CHANGED: Explicitly using .png as requested
+                          src={`/images/${item.sku}.png`}
                           alt={item.name} 
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           onError={(e) => {
@@ -177,7 +202,9 @@ function PickScreen() {
                       {/* On Hand Metric */}
                       <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>On Hand</span>
-                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1A1A1A', textAlign: 'left' }}>{mockStock}</span>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1A1A1A', textAlign: 'left' }}>
+                          {currentStock}
+                        </span>
                       </div>
 
                       {/* Location Metric */}
@@ -187,7 +214,7 @@ function PickScreen() {
                         <span style={{ fontSize: '13px', color: '#2C3E50', textAlign: 'left' }}>Bin <strong>{mockBin}</strong></span>
                       </div>
 
-                      {/* Actions - Added slight margin to align visually with the text underneath headers */}
+                      {/* Actions */}
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, marginTop: '16px' }}>
                         {item.status === "Pending" && (
                           <>
