@@ -370,7 +370,6 @@ function CustomerPickupScreen() {
       {/* Orders List */}
       {pickupOrders.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 40px', color: '#A0A0A0', backgroundColor: '#131E3A', borderRadius: '12px', border: '1px solid #2C3E50' }}>
-          <div style={{ fontSize: '40px', marginBottom: '15px' }}>🎉</div>
           <h2 style={{ margin: '0 0 10px 0', color: '#FFFFFF', fontSize: '20px' }}>All Caught Up!</h2>
           <p style={{ margin: 0, fontSize: '15px' }}>No orders are currently staged for pickup.</p>
         </div>
